@@ -1,0 +1,55 @@
+<svg width="1280" height="640" viewBox="0 0 1280 640" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">WevoaWeb banner</title>
+  <desc id="desc">A green and dark banner for the WevoaWeb open-source repository.</desc>
+  <defs>
+    <linearGradient id="bg" x1="120" y1="72" x2="1150" y2="590" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#F5FBF6"/>
+      <stop offset="1" stop-color="#E6F4EA"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="819" y1="148" x2="1012" y2="342" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#1B8A52"/>
+      <stop offset="1" stop-color="#136640"/>
+    </linearGradient>
+    <linearGradient id="code" x1="780" y1="170" x2="1110" y2="480" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#0F172A"/>
+      <stop offset="1" stop-color="#1E293B"/>
+    </linearGradient>
+  </defs>
+
+  <rect width="1280" height="640" rx="36" fill="url(#bg)"/>
+  <circle cx="1098" cy="96" r="118" fill="#D7F0DE"/>
+  <circle cx="1118" cy="126" r="78" fill="#EEF8F1"/>
+
+  <rect x="72" y="78" width="516" height="58" rx="29" fill="#FFFFFF" stroke="#D3E6D8"/>
+  <circle cx="111" cy="107" r="10" fill="#1B8A52"/>
+  <rect x="133" y="95" width="128" height="24" rx="12" fill="#E7F5EB"/>
+  <rect x="278" y="95" width="104" height="24" rx="12" fill="#F2F7F4"/>
+  <rect x="398" y="95" width="150" height="24" rx="12" fill="#F2F7F4"/>
+
+  <text x="76" y="220" fill="#123524" font-family="Segoe UI, Arial, sans-serif" font-size="78" font-weight="700">WevoaWeb</text>
+  <text x="76" y="282" fill="#406253" font-family="Segoe UI, Arial, sans-serif" font-size="26">An original server-side scripting language</text>
+  <text x="76" y="320" fill="#406253" font-family="Segoe UI, Arial, sans-serif" font-size="26">and HTML-first web engine built in modern C++17.</text>
+
+  <rect x="76" y="366" width="192" height="52" rx="26" fill="#1B8A52"/>
+  <text x="126" y="399" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">HTML First</text>
+
+  <rect x="286" y="366" width="220" height="52" rx="26" fill="#FFFFFF" stroke="#D3E6D8"/>
+  <text x="336" y="399" fill="#1B8A52" font-family="Segoe UI, Arial, sans-serif" font-size="21" font-weight="700">Original Runtime</text>
+
+  <rect x="76" y="456" width="505" height="106" rx="28" fill="#FFFFFF" stroke="#D3E6D8"/>
+  <text x="112" y="500" fill="#123524" font-family="Consolas, monospace" font-size="24">wevoa create my-app</text>
+  <text x="112" y="536" fill="#123524" font-family="Consolas, monospace" font-size="24">cd my-app</text>
+  <text x="112" y="572" fill="#123524" font-family="Consolas, monospace" font-size="24">wevoa start</text>
+
+  <g filter="url(#shadow)">
+    <rect x="732" y="120" width="462" height="392" rx="34" fill="#FFFFFF" stroke="#D3E6D8"/>
+  </g>
+  <rect x="782" y="150" width="144" height="42" rx="21" fill="url(#accent)"/>
+  <text x="823" y="177" fill="#FFFFFF" font-family="Segoe UI, Arial, sans-serif" font-size="18" font-weight="700">Route Native</text>
+
+  <rect x="782" y="220" width="362" height="232" rx="28" fill="url(#code)"/>
+  <text x="814" y="272" fill="#E2FCE8" font-family="Consolas, monospace" font-size="22">route "/" {</text>
+  <text x="814" y="312" fill="#A7F3C2" font-family="Consolas, monospace" font-size="22">  return "&lt;h1&gt;Hello&lt;/h1&gt;"</text>
+  <text x="814" y="352" fill="#E2FCE8" font-family="Consolas, monospace" font-size="22">}</text>
+  <text x="814" y="414" fill="#92C7A3" font-family="Segoe UI, Arial, sans-serif" font-size="20">Browser → HTTP → WevoaWeb → HTML</text>
+</svg>

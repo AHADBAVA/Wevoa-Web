@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  push:
+    branches: ["main"]
+  pull_request:
+    branches: ["main"]
+
+jobs:
+  build-and-smoke-test:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Build
+        run: |
+          g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
+              cli/cli_handler.cpp \
+              cli/project_creator.cpp \
+              lexer/lexer.cpp parser/parser.cpp ast/ast.cpp \
+              interpreter/value.cpp interpreter/environment.cpp \
+              interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
+              runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
+              server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
+              watcher/file_watcher.cpp \
+              utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
+              -o wevoa
+
+      - name: Smoke test CLI help
+        run: ./wevoa help
+
+      - name: Smoke test build placeholder
+        run: ./wevoa build
+
+      - name: Smoke test project creation
+        run: |
+          ./wevoa create ci-sample
+          test -f ci-sample/views/index.wev
+          test -f ci-sample/public/style.css

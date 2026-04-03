@@ -34,3 +34,6 @@ dist/
 out/
 bin/
 obj/
+
+# Local generated test app
+my-app/

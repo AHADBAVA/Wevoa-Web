@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: WevoaWeb Support
+    url: https://github.com/AHADBAVA/Wevoa-Web/blob/main/SUPPORT.md
+    about: Read support guidance before opening an issue.
+  - name: Quick Start
+    url: https://github.com/AHADBAVA/Wevoa-Web/blob/main/docs/quickstart.md
+    about: Set up and run WevoaWeb locally.
+  - name: Language Reference
+    url: https://github.com/AHADBAVA/Wevoa-Web/blob/main/docs/language-reference.md
+    about: Review currently supported syntax and language features.

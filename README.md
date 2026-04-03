@@ -1,142 +1,31 @@
-# WevoaWeb
+<p align="center">
+  <img src="assets/repo-banner.svg" alt="WevoaWeb banner" width="100%" />
+</p>
 
-WevoaWeb is an open-source server-side scripting language and web engine written in modern C++17.
+<p align="center">
+  <a href="https://github.com/AHADBAVA/Wevoa-Web/actions/workflows/ci.yml"><img src="https://github.com/AHADBAVA/Wevoa-Web/actions/workflows/ci.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-1b8a52" alt="MIT License" /></a>
+  <img src="https://img.shields.io/badge/c%2B%2B-17-0f172a" alt="C++17" />
+  <img src="https://img.shields.io/badge/status-experimental-1b8a52" alt="Experimental" />
+</p>
 
-It combines:
+<p align="center">
+  An original server-side scripting language and HTML-first web engine built in modern C++17.
+</p>
 
-- a small original programming language
-- a tree-walk interpreter
-- a built-in HTTP development server
-- a CLI for creating and running WevoaWeb apps
+WevoaWeb combines a small programming language, a tree-walk interpreter, a built-in HTTP dev server, and a CLI for creating and running server-rendered apps. The browser receives plain HTML and static assets only.
 
-The browser receives plain HTML and static assets only. No JavaScript runtime is required in the browser.
+## Why It Stands Out
 
-## Status
+- Original implementation from lexer to server runtime
+- HTML-first web model with native `route` declarations
+- Lightweight codebase that is easy to read and extend
+- Modern C++17 architecture with clear language layers
+- Built-in developer workflow with `wevoa start` and `wevoa create`
 
-WevoaWeb is currently experimental but working. The repository already includes:
+## Quick Start
 
-- a lexer, parser, AST, and interpreter
-- lexical scoping, functions, constants, loops, and conditionals
-- native `route` declarations for server-rendered pages
-- a dev server with file watching and reload controls
-- a project scaffolder with a clean starter template
-
-This is a serious foundation for a future language and framework, but it is still early-stage software.
-
-## Why WevoaWeb
-
-- Original design: it is not a wrapper around another scripting engine.
-- Server-first model: routes render HTML on the server.
-- Lightweight implementation: modern C++ with no heavy framework dependency.
-- Easy to extend: the codebase is structured around a clear language pipeline.
-- Friendly developer workflow: `wevoa start` and `wevoa create` are built in.
-
-## Core Capabilities
-
-### Language
-
-- Variables with `let` and `const`
-- Integers, strings, booleans, and `nil`
-- Arithmetic and comparison operators
-- String concatenation
-- Block scope with `{ }`
-- `if / else`
-- `loop (init; condition; increment)`
-- Functions with parameters and `return`
-- Lexical closures
-- Built-in `print()` and `input()`
-- Source-aware lexer, parser, and runtime errors with line/column spans
-
-Example:
-
-```text
-let title = "WevoaWeb"
-
-func welcome(name) {
-return "<h1>Hello " + name + "</h1>"
-}
-
-route "/" {
-return welcome(title)
-}
-```
-
-### Web Engine
-
-- Route declarations inside `.wev` files
-- Dynamic HTML generation from language expressions
-- HTTP server for `GET` requests
-- Static file serving from `public/`
-- 404 and 405 responses
-- Plain HTML responses only
-
-Example route:
-
-```text
-let app_name = "WevoaWeb"
-
-route "/" {
-return "<h1>Welcome to " + app_name + "</h1>"
-}
-```
-
-### Developer CLI
-
-- `wevoa start`
-- `wevoa create <project-name>`
-- `wevoa build`
-- `wevoa help`
-
-Dev server features:
-
-- port configuration
-- file watching for `views/` and `public/`
-- manual reload with `R`
-- quit with `Q`
-- graceful shutdown with `Ctrl+C`
-
-## Repository Layout
-
-```text
-ast/
-cli/
-examples/
-interpreter/
-lexer/
-parser/
-public/
-runtime/
-server/
-utils/
-views/
-watcher/
-main.cpp
-```
-
-## Architecture
-
-WevoaWeb is split into a clean execution pipeline:
-
-1. `lexer/`
-   Turns source text into tokens with line/column tracking.
-2. `parser/`
-   Builds an AST with recursive-descent parsing and operator precedence.
-3. `ast/`
-   Defines expression and statement node types using `std::unique_ptr`.
-4. `interpreter/`
-   Evaluates the AST, manages environments, functions, closures, and routes.
-5. `runtime/`
-   Manages sessions, built-ins, and optional AST debug output.
-6. `server/`
-   Loads views, serves routes, and handles HTTP requests.
-7. `cli/`
-   Provides the developer-facing command system.
-
-For a more contributor-focused overview, see [docs/architecture.md](docs/architecture.md).
-
-## Build
-
-### Windows with MinGW
+Build:
 
 ```powershell
 g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
@@ -152,37 +41,7 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
     -o wevoa.exe -lws2_32
 ```
 
-### Linux / macOS
-
-```bash
-g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
-    cli/cli_handler.cpp \
-    cli/project_creator.cpp \
-    lexer/lexer.cpp parser/parser.cpp ast/ast.cpp \
-    interpreter/value.cpp interpreter/environment.cpp \
-    interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
-    runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
-    server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
-    watcher/file_watcher.cpp \
-    utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
-    -o wevoa
-```
-
-## Getting Started
-
-### Run the framework demo
-
-```powershell
-.\wevoa.exe start
-```
-
-Then open:
-
-```text
-http://localhost:3000
-```
-
-### Create a new project
+Create and run an app:
 
 ```powershell
 .\wevoa.exe create my-app
@@ -190,53 +49,97 @@ cd .\my-app
 ..\wevoa.exe start
 ```
 
-## Generated Project Structure
+Open:
 
 ```text
-my-app/
-  views/
-    index.wev
-    layout.wev
-  public/
-    style.css
-  wevoa.config.json
+http://localhost:3000
 ```
 
-The scaffold includes a simple centered starter page with a minimal navbar and a green-and-white theme.
+## Language Snapshot
 
-## Examples
+```text
+let title = "WevoaWeb"
 
-Sample scripts live in `examples/`.
+func welcome(name) {
+return "<h1>Hello " + name + "</h1>"
+}
 
-The repository also includes demo routes in `views/` used by the local dev server.
+route "/" {
+return welcome(title)
+}
+```
 
-## Current Limitations
+Current language features:
 
-WevoaWeb is intentionally small right now. Some things are not implemented yet:
+- `let` and `const`
+- integers, strings, booleans, and `nil`
+- arithmetic and comparisons
+- blocks, `if / else`, and `loop`
+- functions, `return`, and lexical closures
+- built-in `print()` and `input()`
+- source-aware lexer, parser, and runtime diagnostics
 
-- module/import system
-- arrays, maps, or object literals
-- floating-point numbers
-- classes and methods
-- `break` and `continue`
-- production build pipeline
-- full template/layout engine
-- automatic use of `wevoa.config.json` at runtime
+## Runtime Flow
 
-## Roadmap
+<p align="center">
+  <img src="assets/runtime-flow.svg" alt="WevoaWeb runtime flow" width="92%" />
+</p>
 
-See [ROADMAP.md](ROADMAP.md).
+## What You Get In This Repo
 
-## Contributing
+- `lexer/`, `parser/`, `ast/`, `interpreter/`, and `runtime/`
+- `server/` for route loading, HTTP handling, and static assets
+- `cli/` for `start`, `create`, `build`, and `help`
+- `watcher/` for development reload support
+- `examples/` and demo routes under `views/`
+- open-source repo standards, templates, and contributor docs
 
-Please read [CONTRIBUTING.md](CONTRIBUTING.md) before opening major pull requests.
+## Documentation
 
-Community expectations are described in [CODE_OF_CONDUCT.md](CODE_OF_CONDUCT.md).
+- [Quick Start](docs/quickstart.md)
+- [Language Reference](docs/language-reference.md)
+- [Architecture](docs/architecture.md)
+- [Roadmap](ROADMAP.md)
+- [Changelog](CHANGELOG.md)
+- [Contributing](CONTRIBUTING.md)
+- [Support](SUPPORT.md)
 
-Security reporting guidance is available in [SECURITY.md](SECURITY.md).
+## Current Status
 
-## License
+WevoaWeb is working and public, but still intentionally small. The current implementation already supports:
 
-WevoaWeb is released under the MIT License.
+- an original interpreted language
+- server-side HTML rendering
+- route-based web apps
+- static file serving from `public/`
+- file watching and manual reload controls
+- project scaffolding with a clean starter template
 
-See [LICENSE](LICENSE).
+The current limitations are:
+
+- no module/import system yet
+- no arrays, maps, or object literals yet
+- no floating-point numbers yet
+- no classes or methods yet
+- no production build pipeline yet
+- no full template/layout engine yet
+
+## Open Source
+
+- [MIT License](LICENSE)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+- [Security Policy](SECURITY.md)
+- [Issue Templates](.github/ISSUE_TEMPLATE)
+- [Pull Request Template](.github/pull_request_template.md)
+
+## Roadmap Direction
+
+Planned areas of growth include:
+
+- bytecode VM work
+- stronger standard library primitives
+- better templating and route ergonomics
+- config-driven server behavior
+- improved testing and diagnostics
+
+See the full plan in [ROADMAP.md](ROADMAP.md).
