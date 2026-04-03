@@ -1,0 +1,18 @@
+let x = 10
+
+func test(name) {
+print("Hello " + name)
+}
+
+func multiply(a, b) {
+return a * b
+}
+
+if (x > 5) {
+test("WevoaWeb")
+print(multiply(2, 5))
+}
+
+loop (i = 0; i < 3; i = i + 1) {
+print(i)
+}

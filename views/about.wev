@@ -1,0 +1,5 @@
+let framework = "WevoaWeb"
+
+route "/about" {
+return "<h1>About Page</h1><p>Rendered by " + framework + " on the server.</p>"
+}

@@ -1,0 +1,5 @@
+
+route "/help" {
+return "<h1>welcome to help page</h1><h1>Help page</h1>"
+}
+ 

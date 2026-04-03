@@ -1,0 +1,36 @@
+# Build outputs
+*.exe
+*.out
+*.app
+*.dll
+*.so
+*.dylib
+*.o
+*.obj
+*.a
+*.lib
+*.pdb
+
+# Logs
+*.log
+*.out.log
+*.err.log
+
+# Temporary files
+*.tmp
+*.temp
+
+# Editor and OS files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
+*.user
+*.suo
+
+# Build folders
+build/
+dist/
+out/
+bin/
+obj/

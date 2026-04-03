@@ -1,0 +1,13 @@
+let x = 10
+
+func test(name) {
+print("Hello " + name)
+}
+
+if (x > 5) {
+test("WevoaWeb")
+}
+
+loop (i = 0; i < 3; i = i + 1) {
+print(i)
+}

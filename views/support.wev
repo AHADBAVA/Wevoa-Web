@@ -1,0 +1,4 @@
+
+route "/support" {
+return "<h1>support page</h1>"
+}
