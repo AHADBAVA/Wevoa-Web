@@ -9,6 +9,7 @@
 #include <thread>
 
 #include "runtime/config_loader.h"
+#include "utils/project_layout.h"
 #include "utils/keyboard.h"
 
 namespace wevoaweb::server {
@@ -40,6 +41,15 @@ std::optional<std::uint16_t> portFromConfig(const Value& config) {
     }
 
     return static_cast<std::uint16_t>(configuredPort);
+}
+
+Value withDevelopmentEnvironment(Value config) {
+    if (!config.isObject()) {
+        config = Value(Value::Object {});
+    }
+
+    config.asObject().insert_or_assign("env", Value("dev"));
+    return config;
 }
 
 }  // namespace
@@ -167,16 +177,20 @@ void DevServer::reload(const std::string& reason) {
 }
 
 std::unique_ptr<WebApplication> DevServer::loadApplication() {
-    const Value config = loadConfigFile(std::filesystem::current_path() / "wevoa.config.json");
+    const auto layout = detectSourceProjectLayout(std::filesystem::current_path(),
+                                                  options_.appDirectory,
+                                                  options_.viewsDirectory,
+                                                  options_.publicDirectory);
+    Value config = withDevelopmentEnvironment(loadConfigFile(layout.configFile));
     if (!options_.portSpecified) {
         if (const auto configuredPort = portFromConfig(config); configuredPort.has_value()) {
             options_.port = *configuredPort;
         }
     }
 
-    auto application = std::make_unique<WebApplication>(options_.appDirectory,
-                                                        options_.viewsDirectory,
-                                                        options_.publicDirectory,
+    auto application = std::make_unique<WebApplication>(layout.appDirectory.string(),
+                                                        layout.viewsDirectory.string(),
+                                                        layout.publicDirectory.string(),
                                                         input_,
                                                         output_,
                                                         options_.debugAst,

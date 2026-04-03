@@ -166,19 +166,41 @@ Use `view()` from a route or function:
 
 ```text
 route "/" {
-return view("home.wev", {
+return view("index.wev", {
   title: "Users",
   users: ["Ahad", "Ali"]
 })
 }
 ```
 
-`views/home.wev`
+`views/index.wev`
 
 ```text
 <h1>{{ title }}</h1>
 <p>{{ users[0] }}</p>
 ```
+
+### Template Control Flow
+
+Loop blocks:
+
+```text
+{% for item in items %}
+<li>{{ item }}</li>
+{% end %}
+```
+
+Conditional blocks:
+
+```text
+{% if condition %}
+<p>True</p>
+{% else %}
+<p>False</p>
+{% end %}
+```
+
+These blocks can be nested and work alongside normal `{{ expression }}` interpolation.
 
 ### Inline HTML Blocks
 
@@ -229,7 +251,7 @@ let name = input("Name: ")
 Renders a template file from `views/`.
 
 ```text
-return view("home.wev", {
+return view("index.wev", {
   title: "Welcome"
 })
 ```

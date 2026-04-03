@@ -1,10 +1,13 @@
 #include "runtime/template_engine.h"
 
+#include <cctype>
 #include <fstream>
 #include <iterator>
 #include <sstream>
 #include <stdexcept>
 #include <string_view>
+#include <utility>
+#include <vector>
 
 #include "interpreter/environment.h"
 #include "interpreter/interpreter.h"
@@ -15,6 +18,26 @@
 namespace wevoaweb {
 
 namespace {
+
+struct TemplateNode {
+    enum class Type {
+        Text,
+        Expression,
+        ForBlock,
+        IfBlock,
+    };
+
+    Type type = Type::Text;
+    std::string value;
+    std::string secondaryValue;
+    std::vector<TemplateNode> children;
+    std::vector<TemplateNode> elseChildren;
+};
+
+struct ParseResult {
+    std::vector<TemplateNode> nodes;
+    std::optional<std::string> terminator;
+};
 
 std::string readFileContents(const std::filesystem::path& path) {
     std::ifstream stream(path, std::ios::binary);
@@ -70,6 +93,282 @@ std::optional<std::string> parseSectionLine(const std::string& line) {
     }
 
     return name;
+}
+
+Value evaluateTemplateExpressionValue(const std::string& expressionSource,
+                                     Interpreter& interpreter,
+                                     const std::shared_ptr<Environment>& environment) {
+    try {
+        Lexer lexer(expressionSource);
+        const auto tokens = lexer.scanTokens();
+        Parser parser(tokens, expressionSource);
+        auto expression = parser.parseExpressionOnly();
+        return interpreter.evaluateInEnvironment(*expression, environment);
+    } catch (const WevoaError& error) {
+        throw std::runtime_error("Template expression '{{ " + expressionSource + " }}' failed: " +
+                                 std::string(error.what()));
+    }
+}
+
+std::size_t findNextTemplateMarker(const std::string& source, std::size_t cursor) {
+    const auto expressionPos = source.find("{{", cursor);
+    const auto directivePos = source.find("{%", cursor);
+
+    if (expressionPos == std::string::npos) {
+        return directivePos;
+    }
+
+    if (directivePos == std::string::npos) {
+        return expressionPos;
+    }
+
+    return std::min(expressionPos, directivePos);
+}
+
+bool matchesAnyTerminator(const std::string& directive, const std::vector<std::string>& terminators) {
+    for (const auto& terminator : terminators) {
+        if (directive == terminator) {
+            return true;
+        }
+    }
+
+    return false;
+}
+
+bool isIdentifierStart(char ch) {
+    const auto unsignedChar = static_cast<unsigned char>(ch);
+    return std::isalpha(unsignedChar) || ch == '_';
+}
+
+bool isIdentifierContinue(char ch) {
+    const auto unsignedChar = static_cast<unsigned char>(ch);
+    return std::isalnum(unsignedChar) || ch == '_';
+}
+
+TemplateNode makeTextNode(std::string text) {
+    TemplateNode node;
+    node.type = TemplateNode::Type::Text;
+    node.value = std::move(text);
+    return node;
+}
+
+TemplateNode makeExpressionNode(std::string expression) {
+    TemplateNode node;
+    node.type = TemplateNode::Type::Expression;
+    node.value = std::move(expression);
+    return node;
+}
+
+TemplateNode makeForNode(std::string variableName,
+                         std::string iterableExpression,
+                         std::vector<TemplateNode> children) {
+    TemplateNode node;
+    node.type = TemplateNode::Type::ForBlock;
+    node.value = std::move(variableName);
+    node.secondaryValue = std::move(iterableExpression);
+    node.children = std::move(children);
+    return node;
+}
+
+TemplateNode makeIfNode(std::string conditionExpression,
+                        std::vector<TemplateNode> children,
+                        std::vector<TemplateNode> elseChildren) {
+    TemplateNode node;
+    node.type = TemplateNode::Type::IfBlock;
+    node.value = std::move(conditionExpression);
+    node.children = std::move(children);
+    node.elseChildren = std::move(elseChildren);
+    return node;
+}
+
+std::pair<std::string, std::string> parseForDirective(const std::string& directive) {
+    const std::string remainder = trim(directive.substr(4));
+    if (remainder.empty()) {
+        throw std::runtime_error("Invalid for directive: " + directive);
+    }
+
+    std::size_t cursor = 0;
+    if (!isIdentifierStart(remainder[cursor])) {
+        throw std::runtime_error("Invalid loop variable in directive: " + directive);
+    }
+
+    ++cursor;
+    while (cursor < remainder.size() && isIdentifierContinue(remainder[cursor])) {
+        ++cursor;
+    }
+
+    const std::string variableName = remainder.substr(0, cursor);
+    while (cursor < remainder.size() && std::isspace(static_cast<unsigned char>(remainder[cursor]))) {
+        ++cursor;
+    }
+
+    if (cursor + 1 >= remainder.size() || remainder.substr(cursor, 2) != "in") {
+        throw std::runtime_error("For directive must use 'in': " + directive);
+    }
+
+    cursor += 2;
+    while (cursor < remainder.size() && std::isspace(static_cast<unsigned char>(remainder[cursor]))) {
+        ++cursor;
+    }
+
+    const std::string iterableExpression = trim(remainder.substr(cursor));
+    if (iterableExpression.empty()) {
+        throw std::runtime_error("For directive iterable expression must not be empty.");
+    }
+
+    return {variableName, iterableExpression};
+}
+
+ParseResult parseTemplateNodes(const std::string& source,
+                               std::size_t& cursor,
+                               const std::vector<std::string>& terminators) {
+    ParseResult result;
+
+    while (cursor < source.size()) {
+        const auto marker = findNextTemplateMarker(source, cursor);
+        if (marker == std::string::npos) {
+            if (cursor < source.size()) {
+                result.nodes.push_back(makeTextNode(source.substr(cursor)));
+            }
+            cursor = source.size();
+            return result;
+        }
+
+        if (marker > cursor) {
+            result.nodes.push_back(makeTextNode(source.substr(cursor, marker - cursor)));
+        }
+
+        if (source.compare(marker, 2, "{{") == 0) {
+            const auto close = source.find("}}", marker + 2);
+            if (close == std::string::npos) {
+                throw std::runtime_error("Unclosed template expression.");
+            }
+
+            const std::string expressionSource = trim(source.substr(marker + 2, close - marker - 2));
+            result.nodes.push_back(makeExpressionNode(expressionSource));
+            cursor = close + 2;
+            continue;
+        }
+
+        const auto close = source.find("%}", marker + 2);
+        if (close == std::string::npos) {
+            throw std::runtime_error("Unclosed template directive.");
+        }
+
+        const std::string directive = trim(source.substr(marker + 2, close - marker - 2));
+        cursor = close + 2;
+
+        if (matchesAnyTerminator(directive, terminators)) {
+            result.terminator = directive;
+            return result;
+        }
+
+        if (startsWith(directive, "for ")) {
+            const auto [variableName, iterableExpression] = parseForDirective(directive);
+            auto body = parseTemplateNodes(source, cursor, {"end"});
+            if (!body.terminator.has_value() || *body.terminator != "end") {
+                throw std::runtime_error("For directive must be closed with {% end %}.");
+            }
+
+            result.nodes.push_back(makeForNode(variableName, iterableExpression, std::move(body.nodes)));
+            continue;
+        }
+
+        if (startsWith(directive, "if ")) {
+            const std::string conditionExpression = trim(directive.substr(3));
+            if (conditionExpression.empty()) {
+                throw std::runtime_error("If directive condition must not be empty.");
+            }
+
+            auto thenBranch = parseTemplateNodes(source, cursor, {"else", "end"});
+            std::vector<TemplateNode> elseBranch;
+            if (thenBranch.terminator == std::optional<std::string> {"else"}) {
+                auto elseResult = parseTemplateNodes(source, cursor, {"end"});
+                if (!elseResult.terminator.has_value() || *elseResult.terminator != "end") {
+                    throw std::runtime_error("If directive else branch must be closed with {% end %}.");
+                }
+                elseBranch = std::move(elseResult.nodes);
+            } else if (!thenBranch.terminator.has_value() || *thenBranch.terminator != "end") {
+                throw std::runtime_error("If directive must be closed with {% end %}.");
+            }
+
+            result.nodes.push_back(
+                makeIfNode(conditionExpression, std::move(thenBranch.nodes), std::move(elseBranch)));
+            continue;
+        }
+
+        if (directive == "else" || directive == "end") {
+            throw std::runtime_error("Unexpected template directive {% " + directive + " %}.");
+        }
+
+        throw std::runtime_error("Unknown template directive {% " + directive + " %}.");
+    }
+
+    return result;
+}
+
+std::string renderNodes(const std::vector<TemplateNode>& nodes,
+                        Interpreter& interpreter,
+                        const std::shared_ptr<Environment>& environment) {
+    std::string output;
+
+    for (const auto& node : nodes) {
+        switch (node.type) {
+            case TemplateNode::Type::Text:
+                output += node.value;
+                break;
+
+            case TemplateNode::Type::Expression:
+                if (!node.value.empty()) {
+                    output += evaluateTemplateExpressionValue(node.value, interpreter, environment).toString();
+                }
+                break;
+
+            case TemplateNode::Type::ForBlock: {
+                const Value iterable = evaluateTemplateExpressionValue(node.secondaryValue, interpreter, environment);
+
+                if (iterable.isNil()) {
+                    break;
+                }
+
+                if (iterable.isArray()) {
+                    std::int64_t index = 0;
+                    for (const auto& item : iterable.asArray()) {
+                        auto loopEnvironment = std::make_shared<Environment>(environment);
+                        loopEnvironment->define(node.value, item, true);
+                        loopEnvironment->define(node.value + "_index", Value(index), true);
+                        output += renderNodes(node.children, interpreter, loopEnvironment);
+                        ++index;
+                    }
+                    break;
+                }
+
+                if (iterable.isObject()) {
+                    for (const auto& [key, item] : iterable.asObject()) {
+                        auto loopEnvironment = std::make_shared<Environment>(environment);
+                        loopEnvironment->define(node.value, item, true);
+                        loopEnvironment->define(node.value + "_key", Value(key), true);
+                        output += renderNodes(node.children, interpreter, loopEnvironment);
+                    }
+                    break;
+                }
+
+                throw std::runtime_error("Template for-loop expression must evaluate to an array, object, or nil.");
+            }
+
+            case TemplateNode::Type::IfBlock: {
+                const Value condition = evaluateTemplateExpressionValue(node.value, interpreter, environment);
+                if (condition.isTruthy()) {
+                    output += renderNodes(node.children, interpreter, environment);
+                } else {
+                    output += renderNodes(node.elseChildren, interpreter, environment);
+                }
+                break;
+            }
+        }
+    }
+
+    return output;
 }
 
 }  // namespace
@@ -185,40 +484,13 @@ std::string TemplateEngine::renderTemplateFile(const std::filesystem::path& path
 std::string TemplateEngine::renderTemplateString(const std::string& source,
                                                  Interpreter& interpreter,
                                                  std::shared_ptr<Environment> environment) const {
-    std::string output;
     std::size_t cursor = 0;
-
-    while (cursor < source.size()) {
-        const auto open = source.find("{{", cursor);
-        if (open == std::string::npos) {
-            output.append(source.substr(cursor));
-            break;
-        }
-
-        output.append(source.substr(cursor, open - cursor));
-        const auto close = source.find("}}", open + 2);
-        if (close == std::string::npos) {
-            throw std::runtime_error("Unclosed template expression.");
-        }
-
-        const std::string expressionSource = trim(source.substr(open + 2, close - open - 2));
-        if (!expressionSource.empty()) {
-            try {
-                Lexer lexer(expressionSource);
-                const auto tokens = lexer.scanTokens();
-                Parser parser(tokens, expressionSource);
-                auto expression = parser.parseExpressionOnly();
-                output += interpreter.evaluateInEnvironment(*expression, environment).toString();
-            } catch (const WevoaError& error) {
-                throw std::runtime_error("Template expression '{{ " + expressionSource + " }}' failed: " +
-                                         std::string(error.what()));
-            }
-        }
-
-        cursor = close + 2;
+    auto parsed = parseTemplateNodes(source, cursor, {});
+    if (parsed.terminator.has_value()) {
+        throw std::runtime_error("Unexpected template terminator {% " + *parsed.terminator + " %}.");
     }
 
-    return output;
+    return renderNodes(parsed.nodes, interpreter, environment);
 }
 
 std::filesystem::path TemplateEngine::resolveTemplatePath(const std::string& templatePath) const {

@@ -3,10 +3,13 @@
 #include <iostream>
 #include <string>
 
+#include "cli/build_pipeline.h"
 #include "cli/cli_handler.h"
 #include "cli/project_creator.h"
 #include "server/dev_server.h"
+#include "server/serve_server.h"
 #include "utils/logger.h"
+#include "utils/version.h"
 
 namespace {
 
@@ -42,8 +45,18 @@ int main(int argc, char** argv) {
                 return 0;
             }
 
-            case wevoaweb::CLIHandler::CommandType::Build:
-                logger.info("Build pipeline is reserved for a future release.");
+            case wevoaweb::CLIHandler::CommandType::Build: {
+                wevoaweb::BuildPipeline pipeline;
+                const auto result = pipeline.build(command.buildOptions, std::cin, std::cout);
+                logger.success("Build complete");
+                logger.info("Output: " + result.outputRoot.string());
+                logger.info("Routes bundled: " + std::to_string(result.routes.size()));
+                logger.info("Assets bundled: " + std::to_string(result.assets.size()));
+                return 0;
+            }
+
+            case wevoaweb::CLIHandler::CommandType::Version:
+                std::cout << wevoaweb::kWevoaRuntimeName << ' ' << wevoaweb::kWevoaVersion << '\n';
                 return 0;
 
             case wevoaweb::CLIHandler::CommandType::Start: {
@@ -56,6 +69,23 @@ int main(int argc, char** argv) {
                                                    interruptRequested,
                                                    std::cin,
                                                    std::cout);
+                const int exitCode = server.run();
+
+                std::signal(SIGINT, previousHandler);
+                gInterruptRequested = nullptr;
+                return exitCode;
+            }
+
+            case wevoaweb::CLIHandler::CommandType::Serve: {
+                std::atomic<bool> interruptRequested = false;
+                gInterruptRequested = &interruptRequested;
+                const auto previousHandler = std::signal(SIGINT, handleInterruptSignal);
+
+                wevoaweb::server::ServeServer server(command.serveOptions,
+                                                     logger,
+                                                     interruptRequested,
+                                                     std::cin,
+                                                     std::cout);
                 const int exitCode = server.run();
 
                 std::signal(SIGINT, previousHandler);

@@ -6,6 +6,27 @@
 
 namespace wevoaweb {
 
+namespace {
+
+void applyProjectOption(ProjectCommandOptions& options, const std::string& flag, const std::string& value) {
+    if (flag == "--app") {
+        options.appDirectory = value;
+        return;
+    }
+
+    if (flag == "--views") {
+        options.viewsDirectory = value;
+        return;
+    }
+
+    if (flag == "--public") {
+        options.publicDirectory = value;
+        return;
+    }
+}
+
+}  // namespace
+
 CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
     Command command;
 
@@ -20,8 +41,30 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
         return command;
     }
 
+    if (subcommand == "--version" || subcommand == "-v" || subcommand == "version") {
+        command.type = CommandType::Version;
+        return command;
+    }
+
     if (subcommand == "build") {
         command.type = CommandType::Build;
+        for (int index = 2; index < argc; ++index) {
+            const std::string argument = argv[index];
+
+            if (argument == "--output") {
+                if (index + 1 >= argc) {
+                    throw CLIUsageError("--output requires a value.");
+                }
+                command.buildOptions.outputDirectory = argv[++index];
+            } else if (argument == "--app" || argument == "--views" || argument == "--public") {
+                if (index + 1 >= argc) {
+                    throw CLIUsageError(argument + " requires a value.");
+                }
+                applyProjectOption(command.buildOptions, argument, argv[++index]);
+            } else {
+                throw CLIUsageError("Unknown option for build: " + argument);
+            }
+        }
         return command;
     }
 
@@ -36,6 +79,33 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
 
         command.type = CommandType::Create;
         command.projectName = argv[2];
+        return command;
+    }
+
+    if (subcommand == "serve") {
+        command.type = CommandType::Serve;
+        for (int index = 2; index < argc; ++index) {
+            const std::string argument = argv[index];
+
+            if (argument == "--port") {
+                if (index + 1 >= argc) {
+                    throw CLIUsageError("--port requires a value.");
+                }
+                command.serveOptions.port = parsePort(argv[++index]);
+                command.serveOptions.portSpecified = true;
+            } else if (argument == "--output") {
+                if (index + 1 >= argc) {
+                    throw CLIUsageError("--output requires a value.");
+                }
+                command.serveOptions.buildDirectory = argv[++index];
+            } else if (argument == "--help" || argument == "-h") {
+                command.type = CommandType::Help;
+                return command;
+            } else {
+                throw CLIUsageError("Unknown option for serve: " + argument);
+            }
+        }
+
         return command;
     }
 
@@ -57,17 +127,17 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
             if (index + 1 >= argc) {
                 throw CLIUsageError("--app requires a value.");
             }
-            command.startOptions.appDirectory = argv[++index];
+            applyProjectOption(command.startOptions, argument, argv[++index]);
         } else if (argument == "--views") {
             if (index + 1 >= argc) {
                 throw CLIUsageError("--views requires a value.");
             }
-            command.startOptions.viewsDirectory = argv[++index];
+            applyProjectOption(command.startOptions, argument, argv[++index]);
         } else if (argument == "--public") {
             if (index + 1 >= argc) {
                 throw CLIUsageError("--public requires a value.");
             }
-            command.startOptions.publicDirectory = argv[++index];
+            applyProjectOption(command.startOptions, argument, argv[++index]);
         } else if (argument == "--debug-ast") {
             command.startOptions.debugAst = true;
         } else if (argument == "--help" || argument == "-h") {
@@ -87,13 +157,17 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "Usage:\n";
     std::cout << "  " << executableName << " start [--port 3000] [--app app] [--views views] [--public public]\n";
     std::cout << "  " << executableName << " create <project-name>\n";
-    std::cout << "  " << executableName << " build\n";
+    std::cout << "  " << executableName << " build [--output build]\n";
+    std::cout << "  " << executableName << " serve [--port 3000] [--output build]\n";
+    std::cout << "  " << executableName << " --version\n";
     std::cout << "  " << executableName << " help\n";
     std::cout << '\n';
     std::cout << "Commands:\n";
     std::cout << "  start        Start the development server and file watcher\n";
     std::cout << "  create       Generate a new WevoaWeb project scaffold\n";
-    std::cout << "  build        Placeholder for a future production build pipeline\n";
+    std::cout << "  build        Validate and bundle the current app into a production output folder\n";
+    std::cout << "  serve        Run the built app from the production output folder\n";
+    std::cout << "  --version    Print the installed WevoaWeb runtime version\n";
     std::cout << "  help         Show this help message\n";
     std::cout << '\n';
     std::cout << "While running `start`:\n";

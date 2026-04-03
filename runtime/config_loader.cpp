@@ -3,6 +3,7 @@
 #include <cctype>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <stdexcept>
 #include <string>
 
@@ -211,6 +212,100 @@ class JsonParser {
     std::size_t current_ = 0;
 };
 
+std::string escapeJsonString(const std::string& value) {
+    std::ostringstream escaped;
+    for (const char ch : value) {
+        switch (ch) {
+            case '\\':
+                escaped << "\\\\";
+                break;
+            case '"':
+                escaped << "\\\"";
+                break;
+            case '\n':
+                escaped << "\\n";
+                break;
+            case '\r':
+                escaped << "\\r";
+                break;
+            case '\t':
+                escaped << "\\t";
+                break;
+            default:
+                escaped << ch;
+                break;
+        }
+    }
+
+    return escaped.str();
+}
+
+void writeJsonValue(std::ostringstream& stream, const Value& value, int indentLevel) {
+    const std::string indent(static_cast<std::size_t>(indentLevel) * 2, ' ');
+    const std::string childIndent(static_cast<std::size_t>(indentLevel + 1) * 2, ' ');
+
+    if (value.isNil()) {
+        stream << "null";
+        return;
+    }
+
+    if (value.isInteger()) {
+        stream << value.asInteger();
+        return;
+    }
+
+    if (value.isBoolean()) {
+        stream << (value.asBoolean() ? "true" : "false");
+        return;
+    }
+
+    if (value.isString()) {
+        stream << '"' << escapeJsonString(value.asString()) << '"';
+        return;
+    }
+
+    if (value.isArray()) {
+        const auto& values = value.asArray();
+        stream << '[';
+        if (!values.empty()) {
+            stream << '\n';
+            for (std::size_t i = 0; i < values.size(); ++i) {
+                stream << childIndent;
+                writeJsonValue(stream, values[i], indentLevel + 1);
+                if (i + 1 < values.size()) {
+                    stream << ',';
+                }
+                stream << '\n';
+            }
+            stream << indent;
+        }
+        stream << ']';
+        return;
+    }
+
+    if (value.isObject()) {
+        const auto& object = value.asObject();
+        stream << '{';
+        if (!object.empty()) {
+            stream << '\n';
+            std::size_t index = 0;
+            for (const auto& [key, entry] : object) {
+                stream << childIndent << '"' << escapeJsonString(key) << "\": ";
+                writeJsonValue(stream, entry, indentLevel + 1);
+                if (++index < object.size()) {
+                    stream << ',';
+                }
+                stream << '\n';
+            }
+            stream << indent;
+        }
+        stream << '}';
+        return;
+    }
+
+    throw std::runtime_error("Cannot serialize value of type '" + value.typeName() + "' to JSON.");
+}
+
 }  // namespace
 
 Value loadConfigFile(const std::filesystem::path& path) {
@@ -230,6 +325,13 @@ Value loadConfigFile(const std::filesystem::path& path) {
     }
 
     return value;
+}
+
+std::string serializeJson(const Value& value) {
+    std::ostringstream stream;
+    writeJsonValue(stream, value, 0);
+    stream << '\n';
+    return stream.str();
 }
 
 }  // namespace wevoaweb

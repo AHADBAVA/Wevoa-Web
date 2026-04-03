@@ -61,7 +61,7 @@ The interpreter is a tree-walk runtime. It is responsible for:
 
 ### `runtime/`
 
-The runtime layer manages session lifetime, imports, templates, config loading, SQLite integration, and built-ins. A `RuntimeSession` retains parsed programs so closures and routes can safely reference AST-backed declarations.
+The runtime layer manages session lifetime, imports, templates, config loading, SQLite integration, and built-ins. The template engine now supports interpolation, layouts, sections, and nested `{% if %}` / `{% for %}` control flow. A `RuntimeSession` retains parsed programs so closures and routes can safely reference AST-backed declarations.
 
 ### `server/`
 
@@ -74,9 +74,15 @@ The CLI layer provides:
 - `start`
 - `create`
 - `build`
+- `serve`
+- `--version`
 - `help`
 
-It also coordinates the dev server startup workflow.
+It also coordinates the dev server startup workflow, production bundle creation, built-app serving, and scaffolds the polished starter app with a minimal homepage and modern default styling.
+
+### `scripts/`
+
+Release-oriented helper scripts live here for building distributable binaries and installing the runtime onto `PATH` on Windows and Linux.
 
 ### `watcher/`
 
