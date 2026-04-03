@@ -117,8 +117,17 @@ void Lexer::scanToken() {
         case '}':
             addToken(TokenType::RightBrace);
             break;
+        case '[':
+            addToken(TokenType::LeftBracket);
+            break;
+        case ']':
+            addToken(TokenType::RightBracket);
+            break;
         case ',':
             addToken(TokenType::Comma);
+            break;
+        case '.':
+            addToken(TokenType::Dot);
             break;
         case '-':
             addToken(TokenType::Minus);
@@ -129,6 +138,21 @@ void Lexer::scanToken() {
         case '*':
             addToken(TokenType::Star);
             break;
+        case ':':
+            addToken(TokenType::Colon);
+            break;
+        case '&':
+            if (match('&')) {
+                addToken(TokenType::AndAnd);
+                break;
+            }
+            throw LexError("Unexpected character '&'.", spanFromCurrentToken());
+        case '|':
+            if (match('|')) {
+                addToken(TokenType::OrOr);
+                break;
+            }
+            throw LexError("Unexpected character '|'.", spanFromCurrentToken());
         case ';':
             addToken(TokenType::Semicolon);
             break;
@@ -251,7 +275,12 @@ void Lexer::identifier() {
         {"route", TokenType::Route},
         {"if", TokenType::If},
         {"else", TokenType::Else},
+        {"while", TokenType::While},
         {"loop", TokenType::Loop},
+        {"break", TokenType::Break},
+        {"continue", TokenType::Continue},
+        {"import", TokenType::Import},
+        {"html", TokenType::Html},
         {"return", TokenType::Return},
         {"true", TokenType::True},
         {"false", TokenType::False},

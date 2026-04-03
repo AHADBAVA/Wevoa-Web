@@ -4,6 +4,7 @@
 #include <filesystem>
 #include <fstream>
 #include <iterator>
+#include <sstream>
 #include <optional>
 #include <stdexcept>
 #include <string>
@@ -23,7 +24,32 @@ std::string readFileContents(const std::filesystem::path& path) {
 }
 
 bool shouldExecuteAsRouteScript(const std::string& contents) {
-    return contents.find("route") != std::string::npos;
+    std::istringstream stream(contents);
+    std::string line;
+    bool sawMeaningfulLine = false;
+    while (std::getline(stream, line)) {
+        const auto first = line.find_first_not_of(" \t\r\n");
+        if (first == std::string::npos) {
+            continue;
+        }
+
+        const std::string trimmed = line.substr(first);
+        if (trimmed.rfind("//", 0) == 0) {
+            continue;
+        }
+
+        if (!sawMeaningfulLine &&
+            (trimmed.front() == '<' || trimmed.rfind("extend ", 0) == 0 || trimmed.rfind("section ", 0) == 0)) {
+            return false;
+        }
+
+        sawMeaningfulLine = true;
+        if (trimmed.rfind("route ", 0) == 0) {
+            return true;
+        }
+    }
+
+    return false;
 }
 
 }  // namespace
@@ -32,10 +58,22 @@ WebApplication::WebApplication(std::string viewsDirectory,
                                std::string publicDirectory,
                                std::istream& input,
                                std::ostream& output,
-                               bool debugAst)
+                               bool debugAst,
+                               Value config)
     : viewsDirectory_(std::move(viewsDirectory)),
       publicDirectory_(std::move(publicDirectory)),
-      session_(input, output, debugAst) {}
+      templateEngine_(viewsDirectory_),
+      session_(input, output, debugAst) {
+    session_.interpreter().setTemplateRenderer(
+        [this](Interpreter& interpreter, const std::string& path, const Value& data, const SourceSpan& span) {
+            return templateEngine_.render(path, data, interpreter, span);
+        });
+    session_.interpreter().setInlineTemplateRenderer(
+        [this](Interpreter& interpreter, const std::string& source, const SourceSpan&) {
+            return templateEngine_.renderInline(source, interpreter);
+        });
+    session_.defineGlobal("config", std::move(config), true);
+}
 
 void WebApplication::loadViews() {
     namespace fs = std::filesystem;
@@ -72,12 +110,20 @@ void WebApplication::loadViews() {
     }
 }
 
-bool WebApplication::hasRoute(const std::string& path) const {
-    return session_.hasRoute(path);
+bool WebApplication::hasRoute(const std::string& path, const std::string& method) const {
+    return session_.hasRoute(path, method);
 }
 
-std::string WebApplication::render(const std::string& path) {
-    return session_.renderRoute(path);
+std::string WebApplication::render(const std::string& path, const std::string& method, Value request) {
+    session_.setCurrentRequest(std::move(request));
+    try {
+        std::string result = session_.renderRoute(path, method);
+        session_.clearCurrentRequest();
+        return result;
+    } catch (...) {
+        session_.clearCurrentRequest();
+        throw;
+    }
 }
 
 std::optional<WebApplication::StaticAsset> WebApplication::loadStaticAsset(const std::string& path) const {

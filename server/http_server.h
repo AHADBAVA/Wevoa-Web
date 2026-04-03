@@ -9,8 +9,8 @@
 
 namespace wevoaweb::server {
 
-// HttpServer owns the socket accept loop and dispatches each GET request to
-// a registered WevoaWeb route, returning only HTML to the browser.
+// HttpServer owns the socket accept loop and dispatches GET/POST requests to
+// registered WevoaWeb routes, returning HTML and static assets to the browser.
 class HttpServer {
   public:
     using RequestObserver = std::function<void(const HttpRequest&, const HttpResponse&)>;

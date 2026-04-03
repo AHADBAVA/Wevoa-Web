@@ -18,12 +18,17 @@ class RouteDeclStmt;
 // server can render HTML later without re-parsing the view source.
 class RouteHandler final {
   public:
-    RouteHandler(std::string path, const RouteDeclStmt* declaration, std::shared_ptr<Environment> closure);
+    RouteHandler(std::string method,
+                 std::string path,
+                 const RouteDeclStmt* declaration,
+                 std::shared_ptr<Environment> closure);
 
+    const std::string& method() const;
     const std::string& path() const;
     std::string render(Interpreter& interpreter) const;
 
   private:
+    std::string method_;
     std::string path_;
     const RouteDeclStmt* declaration_;
     std::shared_ptr<Environment> closure_;
@@ -32,8 +37,11 @@ class RouteHandler final {
 class RouteRegistry final {
   public:
     void addRoute(std::shared_ptr<RouteHandler> route, const SourceSpan& span);
-    bool hasRoute(const std::string& path) const;
-    std::string render(const std::string& path, Interpreter& interpreter, const SourceSpan& span) const;
+    bool hasRoute(const std::string& method, const std::string& path) const;
+    std::string render(const std::string& method,
+                       const std::string& path,
+                       Interpreter& interpreter,
+                       const SourceSpan& span) const;
     std::vector<std::string> routePaths() const;
 
   private:

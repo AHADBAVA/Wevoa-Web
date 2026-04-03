@@ -1,5 +1,27 @@
-let name = "WevoaWeb"
+import "shared.wev"
+
+let featured_people = ["Ahad", "Ali"]
 
 route "/" {
-return "<h1>Welcome to " + name + "</h1> <button>Click to go to about page</button?"
+return view("home.wev", {
+  title: site.name,
+  app: site,
+  features: features,
+  teaser: feature_teaser(features),
+  default_name: featured_people[0]
+})
+}
+
+route "/submit" method POST {
+let submitted_name = request.form("name")
+if (!submitted_name || submitted_name == "") {
+  submitted_name = "friend"
+}
+
+return view("submitted.wev", {
+  title: "Form Result",
+  app: site,
+  name: submitted_name,
+  source: request.query("from")
+})
 }

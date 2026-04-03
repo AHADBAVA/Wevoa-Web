@@ -1,4 +1,9 @@
+import "shared.wev"
 
 route "/support" {
-return "<h1>support page</h1>"
+return view("support_page.wev", {
+  title: "Support",
+  app: site,
+  teaser: feature_teaser(features)
+})
 }

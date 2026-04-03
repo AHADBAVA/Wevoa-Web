@@ -23,6 +23,7 @@ jobs:
               interpreter/value.cpp interpreter/environment.cpp \
               interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
               runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
+              runtime/template_engine.cpp runtime/config_loader.cpp \
               server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
               watcher/file_watcher.cpp \
               utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
@@ -38,4 +39,5 @@ jobs:
         run: |
           ./wevoa create ci-sample
           test -f ci-sample/views/index.wev
+          test -f ci-sample/views/home.wev
           test -f ci-sample/public/style.css

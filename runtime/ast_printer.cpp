@@ -67,6 +67,15 @@ void AstPrinter::printStmt(const Stmt& stmt, int indent, std::string& output) co
         return;
     }
 
+    if (const auto* loop = dynamic_cast<const WhileStmt*>(&stmt)) {
+        appendLine(output, indent, "While");
+        appendLine(output, indent + 1, "Condition");
+        printExpr(*loop->condition, indent + 2, output);
+        appendLine(output, indent + 1, "Body");
+        printStmt(*loop->body, indent + 2, output);
+        return;
+    }
+
     if (const auto* function = dynamic_cast<const FuncDeclStmt*>(&stmt)) {
         std::string line = "FuncDecl " + function->name.lexeme + "(";
         for (std::size_t i = 0; i < function->params.size(); ++i) {
@@ -82,11 +91,17 @@ void AstPrinter::printStmt(const Stmt& stmt, int indent, std::string& output) co
     }
 
     if (const auto* route = dynamic_cast<const RouteDeclStmt*>(&stmt)) {
-        appendLine(output, indent, "RouteDecl");
+        appendLine(output, indent, "RouteDecl " + route->method);
         appendLine(output, indent + 1, "Path");
         printExpr(*route->path, indent + 2, output);
         appendLine(output, indent + 1, "Body");
         printStmt(*route->body, indent + 2, output);
+        return;
+    }
+
+    if (const auto* importStmt = dynamic_cast<const ImportStmt*>(&stmt)) {
+        appendLine(output, indent, "Import");
+        printExpr(*importStmt->path, indent + 1, output);
         return;
     }
 
@@ -95,6 +110,16 @@ void AstPrinter::printStmt(const Stmt& stmt, int indent, std::string& output) co
         if (ret->value) {
             printExpr(*ret->value, indent + 1, output);
         }
+        return;
+    }
+
+    if (dynamic_cast<const BreakStmt*>(&stmt) != nullptr) {
+        appendLine(output, indent, "Break");
+        return;
+    }
+
+    if (dynamic_cast<const ContinueStmt*>(&stmt) != nullptr) {
+        appendLine(output, indent, "Continue");
     }
 }
 
@@ -140,6 +165,42 @@ void AstPrinter::printExpr(const Expr& expr, int indent, std::string& output) co
         for (const auto& argument : call->arguments) {
             printExpr(*argument, indent + 1, output);
         }
+        return;
+    }
+
+    if (const auto* array = dynamic_cast<const ArrayExpr*>(&expr)) {
+        appendLine(output, indent, "Array");
+        for (const auto& element : array->elements) {
+            printExpr(*element, indent + 1, output);
+        }
+        return;
+    }
+
+    if (const auto* object = dynamic_cast<const ObjectExpr*>(&expr)) {
+        appendLine(output, indent, "Object");
+        for (const auto& field : object->fields) {
+            appendLine(output, indent + 1, "Field " + field.key.lexeme);
+            printExpr(*field.value, indent + 2, output);
+        }
+        return;
+    }
+
+    if (const auto* html = dynamic_cast<const HtmlExpr*>(&expr)) {
+        appendLine(output, indent, "Html");
+        appendLine(output, indent + 1, html->source);
+        return;
+    }
+
+    if (const auto* get = dynamic_cast<const GetExpr*>(&expr)) {
+        appendLine(output, indent, "Get " + get->name.lexeme);
+        printExpr(*get->object, indent + 1, output);
+        return;
+    }
+
+    if (const auto* index = dynamic_cast<const IndexExpr*>(&expr)) {
+        appendLine(output, indent, "Index");
+        printExpr(*index->object, indent + 1, output);
+        printExpr(*index->index, indent + 1, output);
     }
 }
 

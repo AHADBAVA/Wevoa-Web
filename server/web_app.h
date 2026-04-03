@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 
+#include "interpreter/value.h"
 #include "runtime/session.h"
+#include "runtime/template_engine.h"
 
 namespace wevoaweb::server {
 
@@ -24,11 +26,14 @@ class WebApplication {
                    std::string publicDirectory,
                    std::istream& input,
                    std::ostream& output,
-                   bool debugAst = false);
+                   bool debugAst = false,
+                   Value config = Value(Value::Object {}));
 
     void loadViews();
-    bool hasRoute(const std::string& path) const;
-    std::string render(const std::string& path);
+    bool hasRoute(const std::string& path, const std::string& method = "GET") const;
+    std::string render(const std::string& path,
+                       const std::string& method = "GET",
+                       Value request = Value {});
     std::optional<StaticAsset> loadStaticAsset(const std::string& path) const;
     std::vector<std::string> routePaths() const;
     const std::string& viewsDirectory() const;
@@ -40,6 +45,7 @@ class WebApplication {
 
     std::string viewsDirectory_;
     std::string publicDirectory_;
+    TemplateEngine templateEngine_;
     RuntimeSession session_;
 };
 

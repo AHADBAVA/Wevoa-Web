@@ -38,7 +38,7 @@ class DevServer {
     void handleRequest(const HttpRequest& request, const HttpResponse& response);
 
     void reload(const std::string& reason);
-    std::unique_ptr<WebApplication> loadApplication() const;
+    std::unique_ptr<WebApplication> loadApplication();
     void installApplication(std::unique_ptr<WebApplication> application);
     void stopServer();
     void stopServerLocked();

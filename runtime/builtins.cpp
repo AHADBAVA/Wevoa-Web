@@ -37,6 +37,22 @@ void registerBuiltins(Interpreter& interpreter) {
             std::getline(runtime.input(), line);
             return Value(std::move(line));
         });
+
+    interpreter.registerNative(
+        "view",
+        std::nullopt,
+        [](Interpreter& runtime, const std::vector<Value>& arguments, const SourceSpan& span) -> Value {
+            if (arguments.empty() || arguments.size() > 2) {
+                throw RuntimeError("view() accepts one or two arguments.", span);
+            }
+
+            if (!arguments[0].isString()) {
+                throw RuntimeError("view() template path must be a string.", span);
+            }
+
+            const Value context = arguments.size() == 2 ? arguments[1] : Value(Value::Object {});
+            return Value(runtime.renderView(arguments[0].asString(), context, span));
+        });
 }
 
 }  // namespace wevoaweb

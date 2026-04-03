@@ -10,8 +10,26 @@
 
 namespace wevoaweb {
 
-RouteHandler::RouteHandler(std::string path, const RouteDeclStmt* declaration, std::shared_ptr<Environment> closure)
-    : path_(std::move(path)), declaration_(declaration), closure_(std::move(closure)) {}
+namespace {
+
+std::string routeKey(const std::string& method, const std::string& path) {
+    return method + " " + path;
+}
+
+}  // namespace
+
+RouteHandler::RouteHandler(std::string method,
+                           std::string path,
+                           const RouteDeclStmt* declaration,
+                           std::shared_ptr<Environment> closure)
+    : method_(std::move(method)),
+      path_(std::move(path)),
+      declaration_(declaration),
+      closure_(std::move(closure)) {}
+
+const std::string& RouteHandler::method() const {
+    return method_;
+}
 
 const std::string& RouteHandler::path() const {
     return path_;
@@ -19,6 +37,9 @@ const std::string& RouteHandler::path() const {
 
 std::string RouteHandler::render(Interpreter& interpreter) const {
     auto environment = std::make_shared<Environment>(closure_);
+    if (!interpreter.currentRequest().isNil()) {
+        environment->define("request", interpreter.currentRequest(), true);
+    }
 
     try {
         interpreter.executeBlock(declaration_->body->statements, environment);
@@ -33,20 +54,23 @@ std::string RouteHandler::render(Interpreter& interpreter) const {
 }
 
 void RouteRegistry::addRoute(std::shared_ptr<RouteHandler> route, const SourceSpan& span) {
-    const auto [found, inserted] = routes_.emplace(route->path(), route);
+    const auto [found, inserted] = routes_.emplace(routeKey(route->method(), route->path()), route);
     if (!inserted) {
-        throw RuntimeError("Route '" + route->path() + "' is already defined.", span);
+        throw RuntimeError("Route '" + route->method() + " " + route->path() + "' is already defined.", span);
     }
 }
 
-bool RouteRegistry::hasRoute(const std::string& path) const {
-    return routes_.find(path) != routes_.end();
+bool RouteRegistry::hasRoute(const std::string& method, const std::string& path) const {
+    return routes_.find(routeKey(method, path)) != routes_.end();
 }
 
-std::string RouteRegistry::render(const std::string& path, Interpreter& interpreter, const SourceSpan& span) const {
-    const auto found = routes_.find(path);
+std::string RouteRegistry::render(const std::string& method,
+                                  const std::string& path,
+                                  Interpreter& interpreter,
+                                  const SourceSpan& span) const {
+    const auto found = routes_.find(routeKey(method, path));
     if (found == routes_.end()) {
-        throw RuntimeError("No route matched '" + path + "'.", span);
+        throw RuntimeError("No route matched '" + method + " " + path + "'.", span);
     }
 
     return found->second->render(interpreter);

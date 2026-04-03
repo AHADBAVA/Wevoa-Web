@@ -3,7 +3,9 @@
 #include <cstdint>
 #include <memory>
 #include <string>
+#include <unordered_map>
 #include <variant>
+#include <vector>
 
 namespace wevoaweb {
 
@@ -11,7 +13,15 @@ class Callable;
 
 class Value {
   public:
-    using Storage = std::variant<std::monostate, std::int64_t, std::string, bool, std::shared_ptr<Callable>>;
+    using Array = std::vector<Value>;
+    using Object = std::unordered_map<std::string, Value>;
+    using Storage = std::variant<std::monostate,
+                                 std::int64_t,
+                                 std::string,
+                                 bool,
+                                 std::shared_ptr<Callable>,
+                                 std::shared_ptr<Array>,
+                                 std::shared_ptr<Object>>;
 
     Value() = default;
     Value(std::int64_t value);
@@ -19,17 +29,25 @@ class Value {
     Value(const char* value);
     Value(bool value);
     Value(std::shared_ptr<Callable> value);
+    Value(Array value);
+    Value(Object value);
 
     bool isNil() const;
     bool isInteger() const;
     bool isString() const;
     bool isBoolean() const;
     bool isCallable() const;
+    bool isArray() const;
+    bool isObject() const;
 
     std::int64_t asInteger() const;
     const std::string& asString() const;
     bool asBoolean() const;
     const std::shared_ptr<Callable>& asCallable() const;
+    const Array& asArray() const;
+    const Object& asObject() const;
+    Array& asArray();
+    Object& asObject();
 
     std::string typeName() const;
     std::string toString() const;

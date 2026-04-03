@@ -1,12 +1,16 @@
 #pragma once
 
 #include <memory>
+#include <string>
 #include <vector>
 
 #include "interpreter/value.h"
 #include "runtime/token.h"
 
 namespace wevoaweb {
+
+class Expr;
+class Stmt;
 
 class LiteralExpr;
 class VariableExpr;
@@ -15,15 +19,29 @@ class UnaryExpr;
 class BinaryExpr;
 class GroupingExpr;
 class CallExpr;
+class ArrayExpr;
+class ObjectExpr;
+class HtmlExpr;
+class GetExpr;
+class IndexExpr;
 
 class ExpressionStmt;
 class VarDeclStmt;
 class BlockStmt;
 class IfStmt;
 class LoopStmt;
+class WhileStmt;
 class FuncDeclStmt;
 class RouteDeclStmt;
+class ImportStmt;
 class ReturnStmt;
+class BreakStmt;
+class ContinueStmt;
+
+struct ObjectField {
+    Token key;
+    std::unique_ptr<Expr> value;
+};
 
 class ExprVisitor {
   public:
@@ -35,6 +53,11 @@ class ExprVisitor {
     virtual Value visitBinaryExpr(const BinaryExpr& expr) = 0;
     virtual Value visitGroupingExpr(const GroupingExpr& expr) = 0;
     virtual Value visitCallExpr(const CallExpr& expr) = 0;
+    virtual Value visitArrayExpr(const ArrayExpr& expr) = 0;
+    virtual Value visitObjectExpr(const ObjectExpr& expr) = 0;
+    virtual Value visitHtmlExpr(const HtmlExpr& expr) = 0;
+    virtual Value visitGetExpr(const GetExpr& expr) = 0;
+    virtual Value visitIndexExpr(const IndexExpr& expr) = 0;
 };
 
 class StmtVisitor {
@@ -45,9 +68,13 @@ class StmtVisitor {
     virtual void visitBlockStmt(const BlockStmt& stmt) = 0;
     virtual void visitIfStmt(const IfStmt& stmt) = 0;
     virtual void visitLoopStmt(const LoopStmt& stmt) = 0;
+    virtual void visitWhileStmt(const WhileStmt& stmt) = 0;
     virtual void visitFuncDeclStmt(const FuncDeclStmt& stmt) = 0;
     virtual void visitRouteDeclStmt(const RouteDeclStmt& stmt) = 0;
+    virtual void visitImportStmt(const ImportStmt& stmt) = 0;
     virtual void visitReturnStmt(const ReturnStmt& stmt) = 0;
+    virtual void visitBreakStmt(const BreakStmt& stmt) = 0;
+    virtual void visitContinueStmt(const ContinueStmt& stmt) = 0;
 };
 
 class Expr {
@@ -142,6 +169,55 @@ class CallExpr final : public Expr {
     Value accept(ExprVisitor& visitor) const override;
 };
 
+class ArrayExpr final : public Expr {
+  public:
+    ArrayExpr(std::vector<std::unique_ptr<Expr>> elements, SourceSpan span);
+
+    std::vector<std::unique_ptr<Expr>> elements;
+
+    Value accept(ExprVisitor& visitor) const override;
+};
+
+class ObjectExpr final : public Expr {
+  public:
+    ObjectExpr(std::vector<ObjectField> fields, SourceSpan span);
+
+    std::vector<ObjectField> fields;
+
+    Value accept(ExprVisitor& visitor) const override;
+};
+
+class HtmlExpr final : public Expr {
+  public:
+    HtmlExpr(Token keyword, std::string source, SourceSpan span);
+
+    Token keyword;
+    std::string source;
+
+    Value accept(ExprVisitor& visitor) const override;
+};
+
+class GetExpr final : public Expr {
+  public:
+    GetExpr(std::unique_ptr<Expr> object, Token name, SourceSpan span);
+
+    std::unique_ptr<Expr> object;
+    Token name;
+
+    Value accept(ExprVisitor& visitor) const override;
+};
+
+class IndexExpr final : public Expr {
+  public:
+    IndexExpr(std::unique_ptr<Expr> object, std::unique_ptr<Expr> index, Token bracket, SourceSpan span);
+
+    std::unique_ptr<Expr> object;
+    std::unique_ptr<Expr> index;
+    Token bracket;
+
+    Value accept(ExprVisitor& visitor) const override;
+};
+
 class ExpressionStmt final : public Stmt {
   public:
     ExpressionStmt(std::unique_ptr<Expr> expression, SourceSpan span);
@@ -201,6 +277,16 @@ class LoopStmt final : public Stmt {
     void accept(StmtVisitor& visitor) const override;
 };
 
+class WhileStmt final : public Stmt {
+  public:
+    WhileStmt(std::unique_ptr<Expr> condition, std::unique_ptr<Stmt> body, SourceSpan span);
+
+    std::unique_ptr<Expr> condition;
+    std::unique_ptr<Stmt> body;
+
+    void accept(StmtVisitor& visitor) const override;
+};
+
 class FuncDeclStmt final : public Stmt {
   public:
     FuncDeclStmt(Token name,
@@ -227,11 +313,44 @@ class ReturnStmt final : public Stmt {
 
 class RouteDeclStmt final : public Stmt {
   public:
-    RouteDeclStmt(Token keyword, std::unique_ptr<Expr> path, std::unique_ptr<BlockStmt> body, SourceSpan span);
+    RouteDeclStmt(Token keyword,
+                  std::unique_ptr<Expr> path,
+                  std::string method,
+                  std::unique_ptr<BlockStmt> body,
+                  SourceSpan span);
 
     Token keyword;
     std::unique_ptr<Expr> path;
+    std::string method;
     std::unique_ptr<BlockStmt> body;
+
+    void accept(StmtVisitor& visitor) const override;
+};
+
+class ImportStmt final : public Stmt {
+  public:
+    ImportStmt(Token keyword, std::unique_ptr<Expr> path, SourceSpan span);
+
+    Token keyword;
+    std::unique_ptr<Expr> path;
+
+    void accept(StmtVisitor& visitor) const override;
+};
+
+class BreakStmt final : public Stmt {
+  public:
+    BreakStmt(Token keyword, SourceSpan span);
+
+    Token keyword;
+
+    void accept(StmtVisitor& visitor) const override;
+};
+
+class ContinueStmt final : public Stmt {
+  public:
+    ContinueStmt(Token keyword, SourceSpan span);
+
+    Token keyword;
 
     void accept(StmtVisitor& visitor) const override;
 };

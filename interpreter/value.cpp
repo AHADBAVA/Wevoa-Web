@@ -1,5 +1,6 @@
 #include "interpreter/value.h"
 
+#include <sstream>
 #include <utility>
 
 #include "interpreter/callable.h"
@@ -15,6 +16,10 @@ Value::Value(const char* value) : storage_(std::string(value)) {}
 Value::Value(bool value) : storage_(value) {}
 
 Value::Value(std::shared_ptr<Callable> value) : storage_(std::move(value)) {}
+
+Value::Value(Array value) : storage_(std::make_shared<Array>(std::move(value))) {}
+
+Value::Value(Object value) : storage_(std::make_shared<Object>(std::move(value))) {}
 
 bool Value::isNil() const {
     return std::holds_alternative<std::monostate>(storage_);
@@ -36,6 +41,14 @@ bool Value::isCallable() const {
     return std::holds_alternative<std::shared_ptr<Callable>>(storage_);
 }
 
+bool Value::isArray() const {
+    return std::holds_alternative<std::shared_ptr<Array>>(storage_);
+}
+
+bool Value::isObject() const {
+    return std::holds_alternative<std::shared_ptr<Object>>(storage_);
+}
+
 std::int64_t Value::asInteger() const {
     return std::get<std::int64_t>(storage_);
 }
@@ -50,6 +63,22 @@ bool Value::asBoolean() const {
 
 const std::shared_ptr<Callable>& Value::asCallable() const {
     return std::get<std::shared_ptr<Callable>>(storage_);
+}
+
+const Value::Array& Value::asArray() const {
+    return *std::get<std::shared_ptr<Array>>(storage_);
+}
+
+const Value::Object& Value::asObject() const {
+    return *std::get<std::shared_ptr<Object>>(storage_);
+}
+
+Value::Array& Value::asArray() {
+    return *std::get<std::shared_ptr<Array>>(storage_);
+}
+
+Value::Object& Value::asObject() {
+    return *std::get<std::shared_ptr<Object>>(storage_);
 }
 
 std::string Value::typeName() const {
@@ -67,6 +96,12 @@ std::string Value::typeName() const {
     }
     if (isCallable()) {
         return "callable";
+    }
+    if (isArray()) {
+        return "array";
+    }
+    if (isObject()) {
+        return "object";
     }
     return "unknown";
 }
@@ -87,6 +122,33 @@ std::string Value::toString() const {
     if (isCallable()) {
         return asCallable()->debugName();
     }
+    if (isArray()) {
+        std::ostringstream stream;
+        stream << '[';
+        const auto& elements = asArray();
+        for (std::size_t i = 0; i < elements.size(); ++i) {
+            if (i > 0) {
+                stream << ", ";
+            }
+            stream << elements[i].toString();
+        }
+        stream << ']';
+        return stream.str();
+    }
+    if (isObject()) {
+        std::ostringstream stream;
+        stream << '{';
+        bool first = true;
+        for (const auto& [key, value] : asObject()) {
+            if (!first) {
+                stream << ", ";
+            }
+            first = false;
+            stream << key << ": " << value.toString();
+        }
+        stream << '}';
+        return stream.str();
+    }
     return "<unknown>";
 }
 
@@ -102,6 +164,12 @@ bool Value::isTruthy() const {
     }
     if (isString()) {
         return !asString().empty();
+    }
+    if (isArray()) {
+        return !asArray().empty();
+    }
+    if (isObject()) {
+        return !asObject().empty();
     }
     return true;
 }
@@ -125,6 +193,12 @@ bool Value::operator==(const Value& other) const {
     }
     if (isCallable()) {
         return asCallable() == other.asCallable();
+    }
+    if (isArray()) {
+        return asArray() == other.asArray();
+    }
+    if (isObject()) {
+        return asObject() == other.asObject();
     }
     return false;
 }

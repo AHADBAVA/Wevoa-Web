@@ -1,14 +1,18 @@
 #include "server/http_server.h"
 
+#include <algorithm>
 #include <array>
 #include <cerrno>
+#include <cctype>
 #include <cstring>
 #include <exception>
 #include <sstream>
 #include <stdexcept>
 #include <string>
+#include <unordered_map>
 #include <utility>
 
+#include "interpreter/callable.h"
 #include "utils/error.h"
 
 #ifdef _WIN32
@@ -154,11 +158,20 @@ Socket createListeningSocket(std::uint16_t port) {
     return listenSocket;
 }
 
+std::string trimLineEnd(std::string line) {
+    if (!line.empty() && line.back() == '\r') {
+        line.pop_back();
+    }
+    return line;
+}
+
 std::string readRequest(NativeSocket clientSocket) {
     std::string request;
     std::array<char, 4096> buffer {};
+    std::size_t contentLength = 0;
+    std::size_t headerEnd = std::string::npos;
 
-    while (request.find("\r\n\r\n") == std::string::npos && request.size() < 16384) {
+    while (request.size() < 65536) {
 #ifdef _WIN32
         const int received = ::recv(clientSocket, buffer.data(), static_cast<int>(buffer.size()), 0);
 #else
@@ -169,16 +182,41 @@ std::string readRequest(NativeSocket clientSocket) {
         }
 
         request.append(buffer.data(), static_cast<std::size_t>(received));
+
+        if (headerEnd == std::string::npos) {
+            headerEnd = request.find("\r\n\r\n");
+            if (headerEnd != std::string::npos) {
+                std::istringstream headerStream(request.substr(0, headerEnd));
+                std::string line;
+                std::getline(headerStream, line);
+
+                while (std::getline(headerStream, line)) {
+                    line = trimLineEnd(line);
+                    const auto separator = line.find(':');
+                    if (separator == std::string::npos) {
+                        continue;
+                    }
+
+                    std::string name = line.substr(0, separator);
+                    std::transform(name.begin(), name.end(), name.begin(), [](unsigned char ch) {
+                        return static_cast<char>(std::tolower(ch));
+                    });
+
+                    if (name == "content-length") {
+                        const std::string value = line.substr(separator + 1);
+                        contentLength = static_cast<std::size_t>(std::stoul(value));
+                        break;
+                    }
+                }
+            }
+        }
+
+        if (headerEnd != std::string::npos && request.size() >= headerEnd + 4 + contentLength) {
+            break;
+        }
     }
 
     return request;
-}
-
-std::string trimLineEnd(std::string line) {
-    if (!line.empty() && line.back() == '\r') {
-        line.pop_back();
-    }
-    return line;
 }
 
 std::string normalizePath(const std::string& target) {
@@ -190,8 +228,75 @@ std::string normalizePath(const std::string& target) {
     return path;
 }
 
+std::string decodeUrlComponent(const std::string& value) {
+    std::string decoded;
+    decoded.reserve(value.size());
+
+    for (std::size_t i = 0; i < value.size(); ++i) {
+        if (value[i] == '+') {
+            decoded.push_back(' ');
+            continue;
+        }
+
+        if (value[i] == '%' && i + 2 < value.size()) {
+            const std::string hex = value.substr(i + 1, 2);
+            decoded.push_back(static_cast<char>(std::stoi(hex, nullptr, 16)));
+            i += 2;
+            continue;
+        }
+
+        decoded.push_back(value[i]);
+    }
+
+    return decoded;
+}
+
+std::unordered_map<std::string, std::string> parseUrlEncoded(const std::string& value) {
+    std::unordered_map<std::string, std::string> pairs;
+    std::size_t cursor = 0;
+
+    while (cursor <= value.size()) {
+        const auto separator = value.find('&', cursor);
+        const std::string segment =
+            separator == std::string::npos ? value.substr(cursor) : value.substr(cursor, separator - cursor);
+
+        if (!segment.empty()) {
+            const auto equals = segment.find('=');
+            if (equals == std::string::npos) {
+                pairs.insert_or_assign(decodeUrlComponent(segment), "");
+            } else {
+                pairs.insert_or_assign(decodeUrlComponent(segment.substr(0, equals)),
+                                       decodeUrlComponent(segment.substr(equals + 1)));
+            }
+        }
+
+        if (separator == std::string::npos) {
+            break;
+        }
+
+        cursor = separator + 1;
+    }
+
+    return pairs;
+}
+
+std::string getHeaderValue(const std::vector<std::pair<std::string, std::string>>& headers, const std::string& name) {
+    for (const auto& [headerName, headerValue] : headers) {
+        if (headerName == name) {
+            return headerValue;
+        }
+    }
+
+    return "";
+}
+
 HttpRequest parseRequest(const std::string& rawRequest) {
-    std::istringstream stream(rawRequest);
+    const auto headerEnd = rawRequest.find("\r\n\r\n");
+    if (headerEnd == std::string::npos) {
+        throw std::runtime_error("Malformed HTTP request.");
+    }
+
+    std::istringstream stream(rawRequest.substr(0, headerEnd));
     std::string requestLine;
     if (!std::getline(stream, requestLine)) {
         throw std::runtime_error("Empty HTTP request.");
@@ -205,8 +310,90 @@ HttpRequest parseRequest(const std::string& rawRequest) {
         throw std::runtime_error("Malformed HTTP request line.");
     }
 
+    std::transform(request.method.begin(), request.method.end(), request.method.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+
     request.path = normalizePath(request.target);
+    request.body = rawRequest.substr(headerEnd + 4);
+
+    std::string headerLine;
+    while (std::getline(stream, headerLine)) {
+        headerLine = trimLineEnd(headerLine);
+        if (headerLine.empty()) {
+            continue;
+        }
+
+        const auto separator = headerLine.find(':');
+        if (separator == std::string::npos) {
+            throw std::runtime_error("Malformed HTTP header.");
+        }
+
+        std::string name = headerLine.substr(0, separator);
+        std::transform(name.begin(), name.end(), name.begin(), [](unsigned char ch) {
+            return static_cast<char>(std::tolower(ch));
+        });
+
+        std::string value = headerLine.substr(separator + 1);
+        if (!value.empty() && value.front() == ' ') {
+            value.erase(value.begin());
+        }
+
+        request.headers.emplace_back(std::move(name), std::move(value));
+    }
+
+    const auto queryPos = request.target.find('?');
+    if (queryPos != std::string::npos) {
+        const auto fragmentPos = request.target.find('#', queryPos);
+        const auto queryString = request.target.substr(queryPos + 1, fragmentPos - queryPos - 1);
+        request.queryParameters = parseUrlEncoded(queryString);
+    }
+
+    const std::string contentType = getHeaderValue(request.headers, "content-type");
+    if (request.method == "POST" && contentType.find("application/x-www-form-urlencoded") != std::string::npos) {
+        request.formParameters = parseUrlEncoded(request.body);
+    }
+
     return request;
+}
+
+Value::Object stringMapToObject(const std::unordered_map<std::string, std::string>& values) {
+    Value::Object object;
+    for (const auto& [key, value] : values) {
+        object.insert_or_assign(key, Value(value));
+    }
+    return object;
+}
+
+Value makeLookupFunctionValue(std::string name, std::unordered_map<std::string, std::string> values) {
+    return Value(std::make_shared<NativeFunction>(
+        std::move(name),
+        1,
+        [values = std::move(values)](Interpreter&, const std::vector<Value>& arguments, const SourceSpan& span) -> Value {
+            if (arguments.size() != 1 || !arguments.front().isString()) {
+                throw RuntimeError("Request lookup expects one string key.", span);
+            }
+
+            const auto found = values.find(arguments.front().asString());
+            if (found == values.end()) {
+                return Value(std::string());
+            }
+
+            return Value(found->second);
+        }));
+}
+
+Value makeRequestValue(const HttpRequest& request) {
+    Value::Object object;
+    object.insert_or_assign("method", Value(request.method));
+    object.insert_or_assign("path", Value(request.path));
+    object.insert_or_assign("target", Value(request.target));
+    object.insert_or_assign("body", Value(request.body));
+    object.insert_or_assign("query", makeLookupFunctionValue("request.query", request.queryParameters));
+    object.insert_or_assign("form", makeLookupFunctionValue("request.form", request.formParameters));
+    object.insert_or_assign("query_data", Value(stringMapToObject(request.queryParameters)));
+    object.insert_or_assign("form_data", Value(stringMapToObject(request.formParameters)));
+    return Value(std::move(object));
 }
 
 void sendAll(NativeSocket socket, const std::string& payload) {
@@ -317,31 +504,49 @@ void HttpServer::stop() {
 }
 
 HttpResponse HttpServer::dispatch(const HttpRequest& request) {
-    if (request.method != "GET") {
+    if (request.method != "GET" && request.method != "POST") {
         return HttpResponse {
             405,
             "Method Not Allowed",
             "text/html; charset=utf-8",
-            "<h1>405 Method Not Allowed</h1><p>Only GET requests are supported.</p>",
-            {{"Allow", "GET"}},
+            "<h1>405 Method Not Allowed</h1><p>Only GET and POST requests are supported.</p>",
+            {{"Allow", "GET, POST"}},
         };
     }
 
-    if (const auto asset = application_.loadStaticAsset(request.path); asset.has_value()) {
-        return HttpResponse {200, "OK", asset->contentType, asset->body, {}};
+    if (request.method == "GET") {
+        if (const auto asset = application_.loadStaticAsset(request.path); asset.has_value()) {
+            return HttpResponse {200, "OK", asset->contentType, asset->body, {}};
+        }
     }
 
-    if (!application_.hasRoute(request.path)) {
+    if (!application_.hasRoute(request.path, request.method)) {
         return HttpResponse {
             404,
             "Not Found",
             "text/html; charset=utf-8",
-            "<h1>404 Not Found</h1><p>No WevoaWeb route matched " + request.path + ".</p>",
+            "<h1>404 Not Found</h1><p>No WevoaWeb route matched " + request.method + " " + request.path + ".</p>",
             {},
         };
     }
 
-    return HttpResponse {200, "OK", "text/html; charset=utf-8", application_.render(request.path), {}};
+    try {
+        return HttpResponse {
+            200,
+            "OK",
+            "text/html; charset=utf-8",
+            application_.render(request.path, request.method, makeRequestValue(request)),
+            {},
+        };
+    } catch (const std::exception& error) {
+        return HttpResponse {
+            500,
+            "Internal Server Error",
+            "text/html; charset=utf-8",
+            "<h1>500 Internal Server Error</h1><p>" + std::string(error.what()) + "</p>",
+            {},
+        };
+    }
 }
 
 }  // namespace wevoaweb::server

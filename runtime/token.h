@@ -12,11 +12,17 @@ enum class TokenType {
     RightParen,
     LeftBrace,
     RightBrace,
+    LeftBracket,
+    RightBracket,
     Comma,
+    Dot,
     Minus,
     Plus,
     Slash,
     Star,
+    Colon,
+    AndAnd,
+    OrOr,
     Semicolon,
     Bang,
     BangEqual,
@@ -35,7 +41,12 @@ enum class TokenType {
     Route,
     If,
     Else,
+    While,
     Loop,
+    Break,
+    Continue,
+    Import,
+    Html,
     Return,
     True,
     False,
@@ -59,8 +70,14 @@ inline std::string_view tokenTypeName(TokenType type) {
             return "LeftBrace";
         case TokenType::RightBrace:
             return "RightBrace";
+        case TokenType::LeftBracket:
+            return "LeftBracket";
+        case TokenType::RightBracket:
+            return "RightBracket";
         case TokenType::Comma:
             return "Comma";
+        case TokenType::Dot:
+            return "Dot";
         case TokenType::Minus:
             return "Minus";
         case TokenType::Plus:
@@ -69,6 +86,12 @@ inline std::string_view tokenTypeName(TokenType type) {
             return "Slash";
         case TokenType::Star:
             return "Star";
+        case TokenType::Colon:
+            return "Colon";
+        case TokenType::AndAnd:
+            return "AndAnd";
+        case TokenType::OrOr:
+            return "OrOr";
         case TokenType::Semicolon:
             return "Semicolon";
         case TokenType::Bang:
@@ -105,8 +128,18 @@ inline std::string_view tokenTypeName(TokenType type) {
             return "If";
         case TokenType::Else:
             return "Else";
+        case TokenType::While:
+            return "While";
         case TokenType::Loop:
             return "Loop";
+        case TokenType::Break:
+            return "Break";
+        case TokenType::Continue:
+            return "Continue";
+        case TokenType::Import:
+            return "Import";
+        case TokenType::Html:
+            return "Html";
         case TokenType::Return:
             return "Return";
         case TokenType::True:

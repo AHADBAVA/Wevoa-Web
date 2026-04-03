@@ -1,0 +1,22 @@
+extend "layout.wev"
+
+section content {
+<section class="hero-card">
+  <p class="eyebrow">{{ app.env }}</p>
+  <h1>Server-rendered HTML from an original C++ runtime.</h1>
+  <p class="lead">{{ app.blurb }}</p>
+  <div class="pill-row">
+    <span class="pill">{{ features[0].title }}</span>
+    <span class="pill">{{ features[1].title }}</span>
+    <span class="pill">{{ features[2].title }}</span>
+  </div>
+  <p class="teaser">{{ teaser }}</p>
+  <form class="demo-form" method="POST" action="/submit?from=landing">
+    <label for="name">Try a POST request</label>
+    <div class="input-row">
+      <input id="name" name="name" value="{{ default_name }}" placeholder="Enter your name">
+      <button type="submit">Render</button>
+    </div>
+  </form>
+</section>
+}

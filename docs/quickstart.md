@@ -14,6 +14,7 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
     interpreter/value.cpp interpreter/environment.cpp `
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
+    runtime/template_engine.cpp runtime/config_loader.cpp `
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp `
     watcher/file_watcher.cpp `
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp `
@@ -30,6 +31,7 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
     interpreter/value.cpp interpreter/environment.cpp \
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
+    runtime/template_engine.cpp runtime/config_loader.cpp \
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
     watcher/file_watcher.cpp \
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
@@ -55,17 +57,33 @@ Open:
 http://localhost:3000
 ```
 
-## 4. Edit a Route
+## 4. Edit a Route and Template
 
-Open `views/index.wev` and change the returned HTML.
+Routes now work best with file-based templates.
 
-Example:
+`views/index.wev`
 
 ```text
-let app_name = "My App"
+let app = {
+  title: "My App",
+  message: "Rendered by WevoaWeb"
+}
 
 route "/" {
-return "<h1>Hello from " + app_name + "</h1>"
+return view("home.wev", app)
+}
+```
+
+`views/home.wev`
+
+```text
+extend "layout.wev"
+
+section content {
+<section class="hero-panel">
+  <h1>{{ title }}</h1>
+  <p>{{ message }}</p>
+</section>
 }
 ```
 

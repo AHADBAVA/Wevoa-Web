@@ -1,5 +1,6 @@
 #pragma once
 
+#include <unordered_map>
 #include <string>
 #include <vector>
 
@@ -10,6 +11,10 @@ struct HttpRequest {
     std::string target;
     std::string path;
     std::string version;
+    std::vector<std::pair<std::string, std::string>> headers;
+    std::unordered_map<std::string, std::string> queryParameters;
+    std::unordered_map<std::string, std::string> formParameters;
+    std::string body;
 };
 
 struct HttpResponse {

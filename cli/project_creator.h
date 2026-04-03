@@ -16,6 +16,7 @@ class ProjectCreator {
   private:
     std::filesystem::path resolveTargetPath(const std::string& projectName) const;
     static std::string layoutTemplate(const std::string& displayName);
+    static std::string homeTemplate();
     static std::string indexTemplate(const std::string& displayName);
     static std::string styleTemplate();
     static std::string configTemplate(const std::string& displayName);

@@ -1,0 +1,11 @@
+extend "layout.wev"
+
+section content {
+<section class="content-card result-card">
+  <p class="eyebrow">POST Result</p>
+  <h1>Hello {{ name + "!" }}</h1>
+  <p class="lead">The request was handled on the server and rendered back as plain HTML.</p>
+  <p class="meta-line">Source: {{ source }}</p>
+  <a class="back-link" href="/">Return home</a>
+</section>
+}

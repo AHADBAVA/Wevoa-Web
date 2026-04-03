@@ -52,6 +52,7 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
                 throw CLIUsageError("--port requires a value.");
             }
             command.startOptions.port = parsePort(argv[++index]);
+            command.startOptions.portSpecified = true;
         } else if (argument == "--views") {
             if (index + 1 >= argc) {
                 throw CLIUsageError("--views requires a value.");

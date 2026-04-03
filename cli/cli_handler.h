@@ -16,6 +16,7 @@ struct StartCommandOptions {
     std::string viewsDirectory = "views";
     std::string publicDirectory = "public";
     bool debugAst = false;
+    bool portSpecified = false;
 };
 
 class CLIHandler {

@@ -1,0 +1,25 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <div class="page-shell">
+    <header class="topbar">
+      <a class="brand" href="/">{{ app.name }}</a>
+      <nav class="topnav">
+        <a href="/">Home</a>
+        <a href="/about">About</a>
+        <a href="/support">Support</a>
+        <a href="/help">Help</a>
+      </nav>
+    </header>
+    <main class="page-frame">
+      {{ content }}
+    </main>
+  </div>
+</body>
+</html>

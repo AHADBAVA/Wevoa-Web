@@ -35,6 +35,7 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
     interpreter/value.cpp interpreter/environment.cpp `
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
+    runtime/template_engine.cpp runtime/config_loader.cpp `
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp `
     watcher/file_watcher.cpp `
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp `
@@ -58,26 +59,29 @@ http://localhost:3000
 ## Language Snapshot
 
 ```text
-let title = "WevoaWeb"
+import "shared.wev"
 
-func welcome(name) {
-return "<h1>Hello " + name + "</h1>"
-}
+let users = ["Ahad", "Ali"]
 
 route "/" {
-return welcome(title)
+return view("home.wev", {
+  title: site.name,
+  users: users
+})
 }
 ```
 
 Current language features:
 
 - `let` and `const`
-- integers, strings, booleans, and `nil`
-- arithmetic and comparisons
-- blocks, `if / else`, and `loop`
-- functions, `return`, and lexical closures
-- built-in `print()` and `input()`
-- source-aware lexer, parser, and runtime diagnostics
+- integers, strings, booleans, arrays, objects, and `nil`
+- arithmetic, comparisons, `&&`, `||`, indexing, and property access
+- blocks, `if / else`, `loop`, `while`, `break`, and `continue`
+- functions, `return`, lexical closures, and `import`
+- built-in `print()`, `input()`, and `view()`
+- `html { ... }` inline templates and `.wev` file views with `{{ expression }}`
+- `route` declarations with `GET` and `POST`
+- source-aware lexer, parser, template, and runtime diagnostics
 
 ## Runtime Flow
 
@@ -109,20 +113,22 @@ Current language features:
 WevoaWeb is working and public, but still intentionally small. The current implementation already supports:
 
 - an original interpreted language
-- server-side HTML rendering
+- server-side HTML rendering with layouts and interpolation
 - route-based web apps
+- GET and POST request handling
+- arrays, objects, indexing, and imports
 - static file serving from `public/`
+- config loading from `wevoa.config.json`
 - file watching and manual reload controls
 - project scaffolding with a clean starter template
 
 The current limitations are:
 
-- no module/import system yet
-- no arrays, maps, or object literals yet
 - no floating-point numbers yet
 - no classes or methods yet
 - no production build pipeline yet
-- no full template/layout engine yet
+- no automatic browser refresh yet
+- no bytecode VM or JIT yet
 
 ## Open Source
 

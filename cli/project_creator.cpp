@@ -83,6 +83,7 @@ std::filesystem::path ProjectCreator::createProject(const std::string& projectNa
     writer_.createDirectory(targetPath / "public");
 
     writer_.writeTextFile(targetPath / "views" / "layout.wev", layoutTemplate(displayName));
+    writer_.writeTextFile(targetPath / "views" / "home.wev", homeTemplate());
     writer_.writeTextFile(targetPath / "views" / "index.wev", indexTemplate(displayName));
     writer_.writeTextFile(targetPath / "public" / "style.css", styleTemplate());
     writer_.writeTextFile(targetPath / "wevoa.config.json", configTemplate(displayName));
@@ -119,7 +120,7 @@ std::string ProjectCreator::layoutTemplate(const std::string& displayName) {
            "<body>\n"
            "  <div class=\"site-shell\">\n"
            "    <header class=\"site-nav\">\n"
-           "      <a class=\"brand\" href=\"/\">WevoaWeb</a>\n"
+           "      <a class=\"brand\" href=\"/\">{{ title }}</a>\n"
            "      <nav class=\"nav-links\">\n"
            "        <a href=\"/\">Home</a>\n"
            "      </nav>\n"
@@ -132,18 +133,34 @@ std::string ProjectCreator::layoutTemplate(const std::string& displayName) {
            "</html>\n";
 }
 
+std::string ProjectCreator::homeTemplate() {
+    return "extend \"layout.wev\"\n"
+           "\n"
+           "section content {\n"
+           "<section class=\"hero-panel\">\n"
+           "  <p class=\"label\">Simple starter</p>\n"
+           "  <h1>{{ title }}</h1>\n"
+           "  <p class=\"subtitle\">{{ tagline }}</p>\n"
+           "  <div class=\"hero-actions\">\n"
+           "    <a class=\"button primary\" href=\"#\">Start editing</a>\n"
+           "    <span class=\"soft-note\">views/home.wev</span>\n"
+           "  </div>\n"
+           "</section>\n"
+           "}\n";
+}
+
 std::string ProjectCreator::indexTemplate(const std::string& displayName) {
     const std::string escapedName = escapeForQuotedLiteral(displayName);
 
-    return "let app_name = \"" +
+    return "let app = {\n"
+           "  title: \"" +
            escapedName +
-           "\"\n"
-           "let page_head = \"<!DOCTYPE html>\\n<html lang=\\\"en\\\">\\n<head>\\n  <meta charset=\\\"utf-8\\\">\\n  <meta name=\\\"viewport\\\" content=\\\"width=device-width, initial-scale=1\\\">\\n  <title>\" + app_name + \"</title>\\n  <link rel=\\\"stylesheet\\\" href=\\\"/style.css\\\">\\n</head>\\n<body>\\n  <div class=\\\"site-shell\\\">\\n    <header class=\\\"site-nav\\\">\\n      <a class=\\\"brand\\\" href=\\\"/\\\">WevoaWeb</a>\\n      <nav class=\\\"nav-links\\\">\\n        <a href=\\\"/\\\">Home</a>\\n      </nav>\\n    </header>\\n    <main class=\\\"main-frame\\\">\\n\"\n"
-           "let hero = \"      <section class=\\\"hero-panel\\\">\\n        <p class=\\\"label\\\">Simple starter</p>\\n        <h1>Build \" + app_name + \" with clean server-rendered pages.</h1>\\n        <p class=\\\"subtitle\\\">A quiet green-and-white template with centered content, one clear message, and room to grow.</p>\\n        <div class=\\\"hero-actions\\\">\\n          <a class=\\\"button primary\\\" href=\\\"#\\\">Start editing</a>\\n          <span class=\\\"soft-note\\\">views/index.wev</span>\\n        </div>\\n      </section>\\n\"\n"
-           "let page_foot = \"    </main>\\n  </div>\\n</body>\\n</html>\\n\"\n"
+           "\",\n"
+           "  tagline: \"A clean WevoaWeb starter with server-rendered templates, zero browser JavaScript, and room to grow.\"\n"
+           "}\n"
            "\n"
            "route \"/\" {\n"
-           "return page_head + hero + page_foot\n"
+           "return view(\"home.wev\", app)\n"
            "}\n";
 }
 
@@ -322,6 +339,7 @@ std::string ProjectCreator::configTemplate(const std::string& displayName) {
 
     return "{\n"
            "  \"port\": 3000,\n"
+           "  \"env\": \"dev\",\n"
            "  \"name\": \"" +
            escapedName +
            "\"\n"

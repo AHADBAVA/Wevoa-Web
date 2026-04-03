@@ -1,0 +1,23 @@
+extend "layout.wev"
+
+section content {
+<section class="content-card">
+  <p class="eyebrow">About</p>
+  <h1>{{ app.name }} is growing into a practical web framework foundation.</h1>
+  <p class="lead">{{ features[0].detail }}</p>
+  <div class="feature-grid">
+    <article class="feature-item">
+      <h2>{{ features[0].title }}</h2>
+      <p>{{ features[0].detail }}</p>
+    </article>
+    <article class="feature-item">
+      <h2>{{ features[1].title }}</h2>
+      <p>{{ features[1].detail }}</p>
+    </article>
+    <article class="feature-item">
+      <h2>{{ features[2].title }}</h2>
+      <p>{{ features[2].detail }}</p>
+    </article>
+  </div>
+</section>
+}

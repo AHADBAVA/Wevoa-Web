@@ -1,5 +1,7 @@
 #include "parser/parser.h"
 
+#include <algorithm>
+#include <cctype>
 #include <cstdint>
 #include <utility>
 
@@ -17,9 +19,17 @@ SourceSpan combine(const Token& first, const Token& second) {
     return SourceSpan {first.span.start, second.span.end};
 }
 
+std::string normalizedMethod(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::toupper(ch));
+    });
+    return value;
+}
+
 }  // namespace
 
-Parser::Parser(const std::vector<Token>& tokens) : tokens_(tokens) {}
+Parser::Parser(const std::vector<Token>& tokens, std::string source)
+    : tokens_(tokens), source_(std::move(source)) {}
 
 std::vector<std::unique_ptr<Stmt>> Parser::parse() {
     std::vector<std::unique_ptr<Stmt>> statements;
@@ -33,8 +43,20 @@ std::vector<std::unique_ptr<Stmt>> Parser::parse() {
     return statements;
 }
 
+std::unique_ptr<Expr> Parser::parseExpressionOnly() {
+    skipSeparators();
+    auto expr = expression();
+    skipSeparators();
+    consume(TokenType::Eof, "Unexpected tokens after expression.");
+    return expr;
+}
+
 std::unique_ptr<Stmt> Parser::declaration() {
     skipSeparators();
+
+    if (match({TokenType::Import})) {
+        return importDeclaration();
+    }
 
     if (match({TokenType::Func})) {
         return functionDeclaration();
@@ -49,6 +71,13 @@ std::unique_ptr<Stmt> Parser::declaration() {
     }
 
     return statement();
+}
+
+std::unique_ptr<Stmt> Parser::importDeclaration() {
+    const Token keyword = previous();
+    auto path = expression();
+    consumeStatementTerminator("Expected newline or ';' after import statement.");
+    return std::make_unique<ImportStmt>(keyword, std::move(path), SourceSpan {keyword.span.start, path->span.end});
 }
 
 std::unique_ptr<Stmt> Parser::functionDeclaration() {
@@ -74,11 +103,25 @@ std::unique_ptr<Stmt> Parser::functionDeclaration() {
 std::unique_ptr<Stmt> Parser::routeDeclaration() {
     const Token keyword = previous();
     auto path = expression();
+    std::string method = "GET";
+
     skipSeparators();
+    if (check(TokenType::Identifier) && peek().lexeme == "method") {
+        advance();
+
+        if (!check(TokenType::Identifier) && !check(TokenType::String)) {
+            throw ParseError("Expected HTTP method after 'method'.", peek().span);
+        }
+
+        method = normalizedMethod(advance().lexeme);
+        skipSeparators();
+    }
+
     const Token& leftBrace = consume(TokenType::LeftBrace, "Expected '{' before route body.");
     auto body = blockStatement(leftBrace);
     return std::make_unique<RouteDeclStmt>(keyword,
                                            std::move(path),
+                                           std::move(method),
                                            std::move(body),
                                            SourceSpan {keyword.span.start, body->span.end});
 }
@@ -113,8 +156,20 @@ std::unique_ptr<Stmt> Parser::statement() {
         return loopStatement(previous());
     }
 
+    if (match({TokenType::While})) {
+        return whileStatement(previous());
+    }
+
     if (match({TokenType::Return})) {
         return returnStatement(previous());
+    }
+
+    if (match({TokenType::Break})) {
+        return breakStatement(previous());
+    }
+
+    if (match({TokenType::Continue})) {
+        return continueStatement(previous());
     }
 
     if (match({TokenType::LeftBrace})) {
@@ -178,6 +233,14 @@ std::unique_ptr<Stmt> Parser::loopStatement(const Token& keyword) {
                                       combine(keyword.span, bodySpan));
 }
 
+std::unique_ptr<Stmt> Parser::whileStatement(const Token& keyword) {
+    consume(TokenType::LeftParen, "Expected '(' after while.");
+    auto condition = expression();
+    consume(TokenType::RightParen, "Expected ')' after while condition.");
+    auto body = statement();
+    return std::make_unique<WhileStmt>(std::move(condition), std::move(body), combine(keyword.span, body->span));
+}
+
 std::unique_ptr<Stmt> Parser::returnStatement(const Token& keyword) {
     std::unique_ptr<Expr> value;
     if (!isStatementBoundary()) {
@@ -187,6 +250,16 @@ std::unique_ptr<Stmt> Parser::returnStatement(const Token& keyword) {
     consumeStatementTerminator("Expected newline or ';' after return statement.");
     const SourceSpan span = value ? combine(keyword.span, value->span) : keyword.span;
     return std::make_unique<ReturnStmt>(keyword, std::move(value), span);
+}
+
+std::unique_ptr<Stmt> Parser::breakStatement(const Token& keyword) {
+    consumeStatementTerminator("Expected newline or ';' after break.");
+    return std::make_unique<BreakStmt>(keyword, keyword.span);
+}
+
+std::unique_ptr<Stmt> Parser::continueStatement(const Token& keyword) {
+    consumeStatementTerminator("Expected newline or ';' after continue.");
+    return std::make_unique<ContinueStmt>(keyword, keyword.span);
 }
 
 std::unique_ptr<Stmt> Parser::expressionStatement(bool expectTerminator) {
@@ -218,7 +291,7 @@ std::unique_ptr<Expr> Parser::expression() {
 }
 
 std::unique_ptr<Expr> Parser::assignment() {
-    auto expr = equality();
+    auto expr = logicalOr();
 
     if (match({TokenType::Equal})) {
         const Token equals = previous();
@@ -238,6 +311,40 @@ std::unique_ptr<Expr> Parser::assignment() {
     return expr;
 }
 
+std::unique_ptr<Expr> Parser::logicalOr() {
+    auto expr = logicalAnd();
+
+    while (match({TokenType::OrOr})) {
+        const Token op = previous();
+        auto right = logicalAnd();
+        const SourceLocation start = expr->span.start;
+        const SourceLocation end = right->span.end;
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
+    }
+
+    return expr;
+}
+
+std::unique_ptr<Expr> Parser::logicalAnd() {
+    auto expr = equality();
+
+    while (match({TokenType::AndAnd})) {
+        const Token op = previous();
+        auto right = equality();
+        const SourceLocation start = expr->span.start;
+        const SourceLocation end = right->span.end;
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
+    }
+
+    return expr;
+}
+
 std::unique_ptr<Expr> Parser::equality() {
     auto expr = comparison();
 
@@ -246,7 +353,10 @@ std::unique_ptr<Expr> Parser::equality() {
         auto right = comparison();
         const SourceLocation start = expr->span.start;
         const SourceLocation end = right->span.end;
-        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(right), SourceSpan {start, end});
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
     }
 
     return expr;
@@ -260,7 +370,10 @@ std::unique_ptr<Expr> Parser::comparison() {
         auto right = term();
         const SourceLocation start = expr->span.start;
         const SourceLocation end = right->span.end;
-        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(right), SourceSpan {start, end});
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
     }
 
     return expr;
@@ -274,7 +387,10 @@ std::unique_ptr<Expr> Parser::term() {
         auto right = factor();
         const SourceLocation start = expr->span.start;
         const SourceLocation end = right->span.end;
-        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(right), SourceSpan {start, end});
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
     }
 
     return expr;
@@ -288,7 +404,10 @@ std::unique_ptr<Expr> Parser::factor() {
         auto right = unary();
         const SourceLocation start = expr->span.start;
         const SourceLocation end = right->span.end;
-        expr = std::make_unique<BinaryExpr>(std::move(expr), op, std::move(right), SourceSpan {start, end});
+        expr = std::make_unique<BinaryExpr>(std::move(expr),
+                                            op,
+                                            std::move(right),
+                                            SourceSpan {start, end});
     }
 
     return expr;
@@ -298,8 +417,7 @@ std::unique_ptr<Expr> Parser::unary() {
     if (match({TokenType::Bang, TokenType::Minus})) {
         const Token op = previous();
         auto right = unary();
-        const SourceLocation end = right->span.end;
-        return std::make_unique<UnaryExpr>(op, std::move(right), SourceSpan {op.span.start, end});
+        return std::make_unique<UnaryExpr>(op, std::move(right), SourceSpan {op.span.start, right->span.end});
     }
 
     return call();
@@ -311,9 +429,28 @@ std::unique_ptr<Expr> Parser::call() {
     while (true) {
         if (match({TokenType::LeftParen})) {
             expr = finishCall(std::move(expr));
-        } else {
-            break;
+            continue;
         }
+
+        if (match({TokenType::LeftBracket})) {
+            const Token bracket = previous();
+            auto index = expression();
+            const Token& rightBracket = consume(TokenType::RightBracket, "Expected ']' after index.");
+            expr = std::make_unique<IndexExpr>(std::move(expr),
+                                               std::move(index),
+                                               bracket,
+                                               SourceSpan {bracket.span.start, rightBracket.span.end});
+            continue;
+        }
+
+        if (match({TokenType::Dot})) {
+            const Token& name = consume(TokenType::Identifier, "Expected property name after '.'.");
+            const SourceLocation start = expr->span.start;
+            expr = std::make_unique<GetExpr>(std::move(expr), name, SourceSpan {start, name.span.end});
+            continue;
+        }
+
+        break;
     }
 
     return expr;
@@ -330,6 +467,73 @@ std::unique_ptr<Expr> Parser::finishCall(std::unique_ptr<Expr> callee) {
 
     const Token& paren = consume(TokenType::RightParen, "Expected ')' after arguments.");
     return std::make_unique<CallExpr>(std::move(callee), paren, std::move(arguments), SourceSpan {start, paren.span.end});
+}
+
+std::unique_ptr<Expr> Parser::arrayLiteral(const Token& leftBracket) {
+    std::vector<std::unique_ptr<Expr>> elements;
+    skipSeparators();
+
+    if (!check(TokenType::RightBracket)) {
+        do {
+            skipSeparators();
+            elements.push_back(expression());
+            skipSeparators();
+        } while (match({TokenType::Comma}));
+    }
+
+    const Token& rightBracket = consume(TokenType::RightBracket, "Expected ']' after array literal.");
+    return std::make_unique<ArrayExpr>(std::move(elements), combine(leftBracket, rightBracket));
+}
+
+std::unique_ptr<Expr> Parser::objectLiteral(const Token& leftBrace) {
+    std::vector<ObjectField> fields;
+    skipSeparators();
+
+    if (!check(TokenType::RightBrace)) {
+        do {
+            skipSeparators();
+            Token key;
+            if (check(TokenType::Identifier) || check(TokenType::String)) {
+                key = advance();
+            } else {
+                throw ParseError("Expected object key.", peek().span);
+            }
+
+            consume(TokenType::Colon, "Expected ':' after object key.");
+            auto value = expression();
+            fields.push_back(ObjectField {std::move(key), std::move(value)});
+            skipSeparators();
+        } while (match({TokenType::Comma}));
+    }
+
+    const Token& rightBrace = consume(TokenType::RightBrace, "Expected '}' after object literal.");
+    return std::make_unique<ObjectExpr>(std::move(fields), combine(leftBrace, rightBrace));
+}
+
+std::unique_ptr<Expr> Parser::htmlBlock(const Token& keyword) {
+    const Token& leftBrace = consume(TokenType::LeftBrace, "Expected '{' after html.");
+    const std::size_t contentStart = leftBrace.span.end.index;
+    int depth = 1;
+
+    while (!isAtEnd()) {
+        const Token& token = advance();
+        if (token.type == TokenType::LeftBrace) {
+            ++depth;
+            continue;
+        }
+
+        if (token.type == TokenType::RightBrace) {
+            --depth;
+            if (depth == 0) {
+                const std::size_t contentEnd = token.span.start.index;
+                return std::make_unique<HtmlExpr>(keyword,
+                                                  source_.substr(contentStart, contentEnd - contentStart),
+                                                  SourceSpan {keyword.span.start, token.span.end});
+            }
+        }
+    }
+
+    throw ParseError("Expected '}' after html block.", keyword.span);
 }
 
 std::unique_ptr<Expr> Parser::primary() {
@@ -352,6 +556,18 @@ std::unique_ptr<Expr> Parser::primary() {
 
     if (match({TokenType::Identifier})) {
         return std::make_unique<VariableExpr>(previous(), previous().span);
+    }
+
+    if (match({TokenType::LeftBracket})) {
+        return arrayLiteral(previous());
+    }
+
+    if (match({TokenType::LeftBrace})) {
+        return objectLiteral(previous());
+    }
+
+    if (match({TokenType::Html})) {
+        return htmlBlock(previous());
     }
 
     if (match({TokenType::LeftParen})) {
