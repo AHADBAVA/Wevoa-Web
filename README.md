@@ -35,11 +35,11 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
     interpreter/value.cpp interpreter/environment.cpp `
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
-    runtime/template_engine.cpp runtime/config_loader.cpp `
+    runtime/template_engine.cpp runtime/config_loader.cpp runtime/sqlite_module.cpp `
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp `
     watcher/file_watcher.cpp `
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp `
-    -o wevoa.exe -lws2_32
+    -o wevoa.exe -lws2_32 -lsqlite3
 ```
 
 Create and run an app:
@@ -56,17 +56,24 @@ Open:
 http://localhost:3000
 ```
 
+Run the bundled sample app:
+
+```powershell
+cd .\Test_project
+..\wevoa.exe start
+```
+
 ## Language Snapshot
 
 ```text
 import "shared.wev"
 
-let users = ["Ahad", "Ali"]
+let db = sqlite.open(config.database)
 
 route "/" {
 return view("home.wev", {
   title: site.name,
-  users: users
+  site: site
 })
 }
 ```
@@ -78,9 +85,10 @@ Current language features:
 - arithmetic, comparisons, `&&`, `||`, indexing, and property access
 - blocks, `if / else`, `loop`, `while`, `break`, and `continue`
 - functions, `return`, lexical closures, and `import`
-- built-in `print()`, `input()`, and `view()`
+- built-in `print()`, `input()`, `view()`, `len()`, and `append()`
 - `html { ... }` inline templates and `.wev` file views with `{{ expression }}`
 - `route` declarations with `GET` and `POST`
+- native SQLite access through `sqlite.open()`, `db.exec()`, `db.query()`, and `db.scalar()`
 - source-aware lexer, parser, template, and runtime diagnostics
 
 ## Runtime Flow
@@ -95,7 +103,7 @@ Current language features:
 - `server/` for route loading, HTTP handling, and static assets
 - `cli/` for `start`, `create`, `build`, and `help`
 - `watcher/` for development reload support
-- `examples/` and demo routes under `views/`
+- `examples/` plus `Test_project/` as the bundled demo app
 - open-source repo standards, templates, and contributor docs
 
 ## Documentation
@@ -117,10 +125,11 @@ WevoaWeb is working and public, but still intentionally small. The current imple
 - route-based web apps
 - GET and POST request handling
 - arrays, objects, indexing, and imports
+- native SQLite-backed persistence
 - static file serving from `public/`
 - config loading from `wevoa.config.json`
 - file watching and manual reload controls
-- project scaffolding with a clean starter template
+- project scaffolding with clean backend/frontend separation
 
 The current limitations are:
 

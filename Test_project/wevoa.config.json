@@ -1,5 +1,5 @@
 {
   "port": 3000,
   "env": "dev",
-  "name": "WevoaWeb"
+  "database": "storage/app.sqlite"
 }

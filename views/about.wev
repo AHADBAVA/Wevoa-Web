@@ -1,9 +1,0 @@
-import "shared.wev"
-
-route "/about" {
-return view("about_page.wev", {
-  title: "About",
-  app: site,
-  features: features
-})
-}

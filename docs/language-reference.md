@@ -234,6 +234,57 @@ return view("home.wev", {
 })
 ```
 
+### `len()`
+
+Returns the size of a string, array, or object.
+
+```text
+print(len(["Ahad", "Ali"]))
+```
+
+### `append()`
+
+Returns a new array with one extra element appended.
+
+```text
+let names = append(["Ahad"], "Ali")
+```
+
+## SQLite
+
+WevoaWeb includes a native SQLite module for lightweight SQL-backed apps.
+
+Open a database:
+
+```text
+let db = sqlite.open(config.database)
+```
+
+Run a write query:
+
+```text
+db.exec("INSERT INTO users (name) VALUES (?)", ["Ahad"])
+```
+
+Run a row query:
+
+```text
+let rows = db.query("SELECT name FROM users ORDER BY id ASC LIMIT 3")
+print(rows[0].name)
+```
+
+Read a single value:
+
+```text
+let total = db.scalar("SELECT COUNT(*) FROM users")
+```
+
+SQLite parameter rules:
+
+- use arrays for positional `?` parameters
+- use objects for named parameters like `:name`
+- supported bound value types are `nil`, `integer`, `boolean`, and `string`
+
 ## Routes
 
 Routes are a language-level web feature.

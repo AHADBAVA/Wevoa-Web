@@ -61,11 +61,11 @@ The interpreter is a tree-walk runtime. It is responsible for:
 
 ### `runtime/`
 
-The runtime layer manages session lifetime, imports, templates, config loading, and built-ins. A `RuntimeSession` retains parsed programs so closures and routes can safely reference AST-backed declarations.
+The runtime layer manages session lifetime, imports, templates, config loading, SQLite integration, and built-ins. A `RuntimeSession` retains parsed programs so closures and routes can safely reference AST-backed declarations.
 
 ### `server/`
 
-The server layer loads route entry files from `views/`, renders `.wev` templates, serves static files from `public/`, handles GET and POST requests, parses form/query data, and keeps the browser-side model deliberately simple: HTML plus static assets only.
+The server layer loads backend route files from `app/`, renders `.wev` templates from `views/`, serves static files from `public/`, handles GET and POST requests, parses form/query data, and keeps the browser-side model deliberately simple: HTML plus static assets only.
 
 ### `cli/`
 

@@ -68,14 +68,15 @@ int DevServer::run() {
     installApplication(loadApplication());
 
     watcher_ = std::make_unique<FileWatcher>(
-        std::vector<std::filesystem::path> {options_.viewsDirectory, options_.publicDirectory},
+        std::vector<std::filesystem::path> {options_.appDirectory, options_.viewsDirectory, options_.publicDirectory},
         kWatcherInterval,
         [this](const FileChangeEvent& event) { handleFileChange(event); });
     watcher_->start();
 
     logger_.wevoa("Server started");
     logger_.wevoa("Running at: http://localhost:" + std::to_string(options_.port));
-    logger_.info("Watching directories: " + options_.viewsDirectory + ", " + options_.publicDirectory);
+    logger_.info("Watching directories: " + options_.appDirectory + ", " + options_.viewsDirectory + ", " +
+                 options_.publicDirectory);
     logger_.info("Press R to reload");
     logger_.info("Press Q to quit");
 
@@ -173,7 +174,8 @@ std::unique_ptr<WebApplication> DevServer::loadApplication() {
         }
     }
 
-    auto application = std::make_unique<WebApplication>(options_.viewsDirectory,
+    auto application = std::make_unique<WebApplication>(options_.appDirectory,
+                                                        options_.viewsDirectory,
                                                         options_.publicDirectory,
                                                         input_,
                                                         output_,

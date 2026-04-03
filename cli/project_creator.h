@@ -16,10 +16,17 @@ class ProjectCreator {
   private:
     std::filesystem::path resolveTargetPath(const std::string& projectName) const;
     static std::string layoutTemplate(const std::string& displayName);
+    static std::string sharedTemplate(const std::string& displayName);
+    static std::string mainTemplate();
     static std::string homeTemplate();
-    static std::string indexTemplate(const std::string& displayName);
+    static std::string aboutTemplate();
+    static std::string usersTemplate();
+    static std::string contactTemplate();
+    static std::string submittedTemplate();
+    static std::string submissionsTemplate();
     static std::string styleTemplate();
     static std::string configTemplate(const std::string& displayName);
+    static std::string readmeTemplate(const std::string& displayName);
 
     FileWriter writer_;
 };

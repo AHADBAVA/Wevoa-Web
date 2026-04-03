@@ -8,15 +8,17 @@
 </head>
 <body>
   <div class="page-shell">
-    <header class="topbar">
-      <a class="brand" href="/">{{ app.name }}</a>
-      <nav class="topnav">
+    <header class="site-header">
+      <a class="brand" href="/">{{ site.name }}</a>
+      <nav class="site-nav">
         <a href="/">Home</a>
         <a href="/about">About</a>
-        <a href="/support">Support</a>
-        <a href="/help">Help</a>
+        <a href="/users">Users</a>
+        <a href="/contact">Contact</a>
+        <a href="/submissions">Submissions</a>
       </nav>
     </header>
+
     <main class="page-frame">
       {{ content }}
     </main>

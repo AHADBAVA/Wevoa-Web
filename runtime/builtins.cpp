@@ -1,6 +1,7 @@
 #include "runtime/builtins.h"
 
 #include "interpreter/interpreter.h"
+#include "runtime/sqlite_module.h"
 #include "utils/error.h"
 
 namespace wevoaweb {
@@ -53,6 +54,40 @@ void registerBuiltins(Interpreter& interpreter) {
             const Value context = arguments.size() == 2 ? arguments[1] : Value(Value::Object {});
             return Value(runtime.renderView(arguments[0].asString(), context, span));
         });
+
+    interpreter.registerNative(
+        "len",
+        1,
+        [](Interpreter&, const std::vector<Value>& arguments, const SourceSpan& span) -> Value {
+            const Value& value = arguments.front();
+
+            if (value.isString()) {
+                return Value(static_cast<std::int64_t>(value.asString().size()));
+            }
+            if (value.isArray()) {
+                return Value(static_cast<std::int64_t>(value.asArray().size()));
+            }
+            if (value.isObject()) {
+                return Value(static_cast<std::int64_t>(value.asObject().size()));
+            }
+
+            throw RuntimeError("len() expects a string, array, or object.", span);
+        });
+
+    interpreter.registerNative(
+        "append",
+        2,
+        [](Interpreter&, const std::vector<Value>& arguments, const SourceSpan& span) -> Value {
+            if (!arguments[0].isArray()) {
+                throw RuntimeError("append() expects an array as its first argument.", span);
+            }
+
+            Value::Array result = arguments[0].asArray();
+            result.push_back(arguments[1]);
+            return Value(std::move(result));
+        });
+
+    registerSqliteModule(interpreter);
 }
 
 }  // namespace wevoaweb

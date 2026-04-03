@@ -13,6 +13,7 @@ class CLIUsageError : public std::runtime_error {
 
 struct StartCommandOptions {
     std::uint16_t port = 3000;
+    std::string appDirectory = "app";
     std::string viewsDirectory = "views";
     std::string publicDirectory = "public";
     bool debugAst = false;

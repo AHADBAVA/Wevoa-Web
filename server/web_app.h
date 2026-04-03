@@ -13,8 +13,8 @@
 
 namespace wevoaweb::server {
 
-// WebApplication loads all .wev files from the views directory into one
-// runtime session and exposes the resulting routes to the HTTP server.
+// WebApplication loads backend source files into one runtime session and
+// renders templates from the views directory for the HTTP server.
 class WebApplication {
   public:
     struct StaticAsset {
@@ -22,7 +22,8 @@ class WebApplication {
         std::string body;
     };
 
-    WebApplication(std::string viewsDirectory,
+    WebApplication(std::string scriptsDirectory,
+                   std::string viewsDirectory,
                    std::string publicDirectory,
                    std::istream& input,
                    std::ostream& output,
@@ -36,6 +37,7 @@ class WebApplication {
                        Value request = Value {});
     std::optional<StaticAsset> loadStaticAsset(const std::string& path) const;
     std::vector<std::string> routePaths() const;
+    const std::string& scriptsDirectory() const;
     const std::string& viewsDirectory() const;
     const std::string& publicDirectory() const;
 
@@ -43,6 +45,7 @@ class WebApplication {
     static std::string contentTypeForPath(const std::filesystem::path& path);
     std::optional<std::filesystem::path> resolveStaticPath(const std::string& requestPath) const;
 
+    std::string scriptsDirectory_;
     std::string viewsDirectory_;
     std::string publicDirectory_;
     TemplateEngine templateEngine_;

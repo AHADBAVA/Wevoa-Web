@@ -17,7 +17,7 @@ namespace {
 std::string readFileContents(const std::filesystem::path& path) {
     std::ifstream stream(path, std::ios::binary);
     if (!stream) {
-        throw std::runtime_error("Unable to open view file: " + path.string());
+        throw std::runtime_error("Unable to open source file: " + path.string());
     }
 
     return std::string(std::istreambuf_iterator<char>(stream), std::istreambuf_iterator<char>());
@@ -54,13 +54,15 @@ bool shouldExecuteAsRouteScript(const std::string& contents) {
 
 }  // namespace
 
-WebApplication::WebApplication(std::string viewsDirectory,
+WebApplication::WebApplication(std::string scriptsDirectory,
+                               std::string viewsDirectory,
                                std::string publicDirectory,
                                std::istream& input,
                                std::ostream& output,
                                bool debugAst,
                                Value config)
-    : viewsDirectory_(std::move(viewsDirectory)),
+    : scriptsDirectory_(std::move(scriptsDirectory)),
+      viewsDirectory_(std::move(viewsDirectory)),
       publicDirectory_(std::move(publicDirectory)),
       templateEngine_(viewsDirectory_),
       session_(input, output, debugAst) {
@@ -78,35 +80,40 @@ WebApplication::WebApplication(std::string viewsDirectory,
 void WebApplication::loadViews() {
     namespace fs = std::filesystem;
 
-    const fs::path root(viewsDirectory_);
-    if (!fs::exists(root) || !fs::is_directory(root)) {
+    const fs::path templatesRoot(viewsDirectory_);
+    if (!fs::exists(templatesRoot) || !fs::is_directory(templatesRoot)) {
         throw std::runtime_error("Views directory not found: " + viewsDirectory_);
     }
 
-    std::vector<fs::path> viewFiles;
-    for (const auto& entry : fs::recursive_directory_iterator(root)) {
+    fs::path scriptsRoot(scriptsDirectory_);
+    if (!fs::exists(scriptsRoot) || !fs::is_directory(scriptsRoot)) {
+        scriptsRoot = templatesRoot;
+    }
+
+    std::vector<fs::path> scriptFiles;
+    for (const auto& entry : fs::recursive_directory_iterator(scriptsRoot)) {
         if (entry.is_regular_file() && entry.path().extension() == ".wev") {
-            viewFiles.push_back(entry.path());
+            scriptFiles.push_back(entry.path());
         }
     }
 
-    std::sort(viewFiles.begin(), viewFiles.end());
+    std::sort(scriptFiles.begin(), scriptFiles.end());
 
-    for (const auto& viewFile : viewFiles) {
-        const std::string contents = readFileContents(viewFile);
+    for (const auto& scriptFile : scriptFiles) {
+        const std::string contents = readFileContents(scriptFile);
         if (!shouldExecuteAsRouteScript(contents)) {
             continue;
         }
 
-        session_.runSource(viewFile.string(), contents);
+        session_.runSource(scriptFile.string(), contents);
     }
 
-    if (viewFiles.empty()) {
-        throw std::runtime_error("No .wev view files were found in: " + viewsDirectory_);
+    if (scriptFiles.empty()) {
+        throw std::runtime_error("No .wev source files were found in: " + scriptsRoot.string());
     }
 
     if (session_.routePaths().empty()) {
-        throw std::runtime_error("No routes were registered from views in: " + viewsDirectory_);
+        throw std::runtime_error("No routes were registered from source files in: " + scriptsRoot.string());
     }
 }
 
@@ -142,6 +149,10 @@ std::optional<WebApplication::StaticAsset> WebApplication::loadStaticAsset(const
 
 std::vector<std::string> WebApplication::routePaths() const {
     return session_.routePaths();
+}
+
+const std::string& WebApplication::scriptsDirectory() const {
+    return scriptsDirectory_;
 }
 
 const std::string& WebApplication::viewsDirectory() const {

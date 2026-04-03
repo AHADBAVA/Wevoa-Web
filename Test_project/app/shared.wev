@@ -1,0 +1,17 @@
+const site = {
+  name: "WevoaWeb",
+  hero: "Welcome to WevoaWeb 🚀",
+  tagline: "This is a dynamic website powered by your own language.",
+  about: "WevoaWeb is a server-first web framework with no JavaScript."
+}
+
+const db = sqlite.open(config.database)
+
+db.exec("CREATE TABLE IF NOT EXISTS users (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL)")
+db.exec("CREATE TABLE IF NOT EXISTS contact_submissions (id INTEGER PRIMARY KEY AUTOINCREMENT, name TEXT NOT NULL, email TEXT NOT NULL, message TEXT NOT NULL)")
+
+if (db.scalar("SELECT COUNT(*) FROM users") == 0) {
+  db.exec("INSERT INTO users (name) VALUES (?)", ["Ahad"])
+  db.exec("INSERT INTO users (name) VALUES (?)", ["Ali"])
+  db.exec("INSERT INTO users (name) VALUES (?)", ["John"])
+}

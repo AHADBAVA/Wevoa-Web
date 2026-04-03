@@ -1,0 +1,9 @@
+extend "layout.wev"
+
+section content {
+<section class="page-card">
+  <h1>About</h1>
+  <p class="lead">{{ site.about }}</p>
+  <p class="body-copy">This sample project keeps backend code in app/, frontend templates in views/, assets in public/, and SQLite data in storage/.</p>
+</section>
+}

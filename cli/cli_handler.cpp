@@ -53,6 +53,11 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
             }
             command.startOptions.port = parsePort(argv[++index]);
             command.startOptions.portSpecified = true;
+        } else if (argument == "--app") {
+            if (index + 1 >= argc) {
+                throw CLIUsageError("--app requires a value.");
+            }
+            command.startOptions.appDirectory = argv[++index];
         } else if (argument == "--views") {
             if (index + 1 >= argc) {
                 throw CLIUsageError("--views requires a value.");
@@ -80,7 +85,7 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "WevoaWeb Developer CLI\n";
     std::cout << '\n';
     std::cout << "Usage:\n";
-    std::cout << "  " << executableName << " start [--port 3000] [--views views] [--public public]\n";
+    std::cout << "  " << executableName << " start [--port 3000] [--app app] [--views views] [--public public]\n";
     std::cout << "  " << executableName << " create <project-name>\n";
     std::cout << "  " << executableName << " build\n";
     std::cout << "  " << executableName << " help\n";
@@ -92,7 +97,7 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "  help         Show this help message\n";
     std::cout << '\n';
     std::cout << "While running `start`:\n";
-    std::cout << "  R            Reload views and runtime state\n";
+    std::cout << "  R            Reload backend, views, and runtime state\n";
     std::cout << "  Q            Quit the development server\n";
     std::cout << "  Ctrl+C       Gracefully stop the server\n";
 }

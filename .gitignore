@@ -37,3 +37,15 @@ obj/
 
 # Local generated test app
 my-app/
+
+# Local runtime data
+storage/*.sqlite
+storage/*.sqlite-shm
+storage/*.sqlite-wal
+*/storage/*.sqlite
+*/storage/*.sqlite-shm
+*/storage/*.sqlite-wal
+
+# Temporary probe and run files
+sqlite-probe.exe
+tmp-*.txt

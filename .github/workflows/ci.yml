@@ -14,6 +14,9 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      - name: Install SQLite
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+
       - name: Build
         run: |
           g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
@@ -23,11 +26,11 @@ jobs:
               interpreter/value.cpp interpreter/environment.cpp \
               interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
               runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
-              runtime/template_engine.cpp runtime/config_loader.cpp \
+              runtime/template_engine.cpp runtime/config_loader.cpp runtime/sqlite_module.cpp \
               server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
               watcher/file_watcher.cpp \
               utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
-              -o wevoa
+              -o wevoa -lsqlite3
 
       - name: Smoke test CLI help
         run: ./wevoa help
@@ -38,6 +41,7 @@ jobs:
       - name: Smoke test project creation
         run: |
           ./wevoa create ci-sample
-          test -f ci-sample/views/index.wev
+          test -f ci-sample/app/main.wev
+          test -f ci-sample/app/shared.wev
           test -f ci-sample/views/home.wev
           test -f ci-sample/public/style.css

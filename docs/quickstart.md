@@ -2,6 +2,8 @@
 
 This guide gets you from source checkout to a running WevoaWeb app.
 
+The repository also includes a bundled sample app in `Test_project/`, while generated projects use the same layout inside their own folder.
+
 ## 1. Build the CLI
 
 ### Windows with MinGW
@@ -14,11 +16,11 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
     interpreter/value.cpp interpreter/environment.cpp `
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
-    runtime/template_engine.cpp runtime/config_loader.cpp `
+    runtime/template_engine.cpp runtime/config_loader.cpp runtime/sqlite_module.cpp `
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp `
     watcher/file_watcher.cpp `
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp `
-    -o wevoa.exe -lws2_32
+    -o wevoa.exe -lws2_32 -lsqlite3
 ```
 
 ### Linux / macOS
@@ -31,11 +33,11 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
     interpreter/value.cpp interpreter/environment.cpp \
     interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
     runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
-    runtime/template_engine.cpp runtime/config_loader.cpp \
+    runtime/template_engine.cpp runtime/config_loader.cpp runtime/sqlite_module.cpp \
     server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
     watcher/file_watcher.cpp \
     utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
-    -o wevoa
+    -o wevoa -lsqlite3
 ```
 
 ## 2. Create a Project
@@ -57,20 +59,35 @@ Open:
 http://localhost:3000
 ```
 
-## 4. Edit a Route and Template
+To run the bundled sample app from this repository:
 
-Routes now work best with file-based templates.
+```powershell
+cd .\Test_project
+..\wevoa.exe start
+```
 
-`views/index.wev`
+## 4. Edit Backend and Frontend
+
+Generated projects use:
+
+- `app/` for backend route and database code
+- `views/` for templates and layouts
+- `public/` for static assets
+- `storage/` for SQLite files
+
+Routes now live in `app/main.wev`.
+
+`app/main.wev`
 
 ```text
-let app = {
-  title: "My App",
-  message: "Rendered by WevoaWeb"
-}
+import "shared.wev"
 
 route "/" {
-return view("home.wev", app)
+return view("home.wev", {
+  title: "Home",
+  site: site,
+  env: config.env
+})
 }
 ```
 
@@ -95,4 +112,4 @@ While the dev server is running:
 - press `Q` to quit
 - use `Ctrl+C` for graceful shutdown
 
-The file watcher also reloads when files in `views/` or `public/` change.
+The file watcher also reloads when files in `app/`, `views/`, or `public/` change.

@@ -1,0 +1,15 @@
+extend "layout.wev"
+
+section content {
+<section class="page-card hero-card">
+  <p class="eyebrow">{{ env }}</p>
+  <h1>{{ site.hero }}</h1>
+  <p class="lead">{{ site.tagline }}</p>
+  <div class="quick-links">
+    <a href="/about">Read about the framework</a>
+    <a href="/users">View dynamic users</a>
+    <a href="/contact">Try the contact form</a>
+    <a href="/submissions">See stored submissions</a>
+  </div>
+</section>
+}

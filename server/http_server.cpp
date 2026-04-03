@@ -165,11 +165,39 @@ std::string trimLineEnd(std::string line) {
     return line;
 }
 
+std::string stripUtf8Bom(std::string value) {
+    if (value.size() >= 3 && static_cast<unsigned char>(value[0]) == 0xEF &&
+        static_cast<unsigned char>(value[1]) == 0xBB && static_cast<unsigned char>(value[2]) == 0xBF) {
+        value.erase(0, 3);
+    }
+
+    return value;
+}
+
+void sendImmediateResponse(NativeSocket socket, const std::string& payload) {
+    std::size_t totalSent = 0;
+    while (totalSent < payload.size()) {
+        const auto remaining = payload.size() - totalSent;
+#ifdef _WIN32
+        const int sent = ::send(socket, payload.data() + totalSent, static_cast<int>(remaining), 0);
+#else
+        const int sent = static_cast<int>(::send(socket, payload.data() + totalSent, remaining, 0));
+#endif
+        if (sent <= 0) {
+            throw std::runtime_error("Failed to send HTTP response: " + lastSocketErrorMessage());
+        }
+
+        totalSent += static_cast<std::size_t>(sent);
+    }
+}
+
 std::string readRequest(NativeSocket clientSocket) {
     std::string request;
     std::array<char, 4096> buffer {};
     std::size_t contentLength = 0;
     std::size_t headerEnd = std::string::npos;
+    bool expectContinue = false;
+    bool continueSent = false;
 
     while (request.size() < 65536) {
 #ifdef _WIN32
@@ -205,10 +233,25 @@ std::string readRequest(NativeSocket clientSocket) {
                     if (name == "content-length") {
                         const std::string value = line.substr(separator + 1);
                         contentLength = static_cast<std::size_t>(std::stoul(value));
-                        break;
+                    } else if (name == "expect") {
+                        std::string value = line.substr(separator + 1);
+                        if (!value.empty() && value.front() == ' ') {
+                            value.erase(value.begin());
+                        }
+
+                        std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+                            return static_cast<char>(std::tolower(ch));
+                        });
+
+                        expectContinue = (value == "100-continue");
                     }
                 }
             }
+        }
+
+        if (headerEnd != std::string::npos && expectContinue && !continueSent && request.size() == headerEnd + 4) {
+            sendImmediateResponse(clientSocket, "HTTP/1.1 100 Continue\r\n\r\n");
+            continueSent = true;
         }
 
         if (headerEnd != std::string::npos && request.size() >= headerEnd + 4 + contentLength) {
@@ -263,9 +306,9 @@ std::unordered_map<std::string, std::string> parseUrlEncoded(const std::string& 
         if (!segment.empty()) {
             const auto equals = segment.find('=');
             if (equals == std::string::npos) {
-                pairs.insert_or_assign(decodeUrlComponent(segment), "");
+                pairs.insert_or_assign(stripUtf8Bom(decodeUrlComponent(segment)), "");
             } else {
-                pairs.insert_or_assign(decodeUrlComponent(segment.substr(0, equals)),
+                pairs.insert_or_assign(stripUtf8Bom(decodeUrlComponent(segment.substr(0, equals))),
                                        decodeUrlComponent(segment.substr(equals + 1)));
             }
         }
@@ -315,7 +358,7 @@ HttpRequest parseRequest(const std::string& rawRequest) {
     });
 
     request.path = normalizePath(request.target);
-    request.body = rawRequest.substr(headerEnd + 4);
+    request.body = stripUtf8Bom(rawRequest.substr(headerEnd + 4));
 
     std::string headerLine;
     while (std::getline(stream, headerLine)) {
@@ -397,21 +440,7 @@ Value makeRequestValue(const HttpRequest& request) {
 }
 
 void sendAll(NativeSocket socket, const std::string& payload) {
-    std::size_t totalSent = 0;
-    while (totalSent < payload.size()) {
-        const auto remaining = payload.size() - totalSent;
-#ifdef _WIN32
-        const int sent =
-            ::send(socket, payload.data() + totalSent, static_cast<int>(remaining), 0);
-#else
-        const int sent = static_cast<int>(::send(socket, payload.data() + totalSent, remaining, 0));
-#endif
-        if (sent <= 0) {
-            throw std::runtime_error("Failed to send HTTP response: " + lastSocketErrorMessage());
-        }
-
-        totalSent += static_cast<std::size_t>(sent);
-    }
+    sendImmediateResponse(socket, payload);
 }
 
 }  // namespace
