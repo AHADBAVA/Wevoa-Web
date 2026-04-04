@@ -9,22 +9,15 @@ namespace wevoaweb {
 
 class ProjectCreator {
   public:
-    explicit ProjectCreator(FileWriter writer = {});
+    explicit ProjectCreator(std::filesystem::path runtimeRoot = {}, FileWriter writer = {});
 
-    std::filesystem::path createProject(const std::string& projectName) const;
+    std::filesystem::path createProject(const std::string& templateName, const std::string& projectName) const;
 
   private:
     std::filesystem::path resolveTargetPath(const std::string& projectName) const;
-    static std::string layoutTemplate(const std::string& displayName);
-    static std::string mainTemplate(const std::string& displayName);
-    static std::string indexTemplate();
-    static std::string docsTemplate();
-    static std::string contactTemplate();
-    static std::string navTemplate();
-    static std::string styleTemplate();
-    static std::string configTemplate(const std::string& displayName);
-    static std::string readmeTemplate(const std::string& displayName);
+    std::filesystem::path resolveTemplateRoot() const;
 
+    std::filesystem::path runtimeRoot_;
     FileWriter writer_;
 };
 

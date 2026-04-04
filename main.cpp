@@ -40,9 +40,12 @@ int main(int argc, char** argv) {
                 return 0;
 
             case wevoaweb::CLIHandler::CommandType::Create: {
-                wevoaweb::ProjectCreator creator;
-                const auto projectPath = creator.createProject(command.projectName);
-                logger.wevoa("Project created successfully!");
+                const auto runtimeRoot =
+                    argc > 0 ? std::filesystem::absolute(argv[0]).parent_path() : std::filesystem::current_path();
+                wevoaweb::ProjectCreator creator(runtimeRoot);
+                logger.wevoa("Creating project using template: " + command.templateName);
+                const auto projectPath = creator.createProject(command.templateName, command.projectName);
+                logger.wevoa("Project created: " + projectPath.filename().string());
                 logger.wevoa("Run:");
                 std::cout << "cd " << projectPath.filename().string() << '\n';
                 std::cout << "wevoa start\n";

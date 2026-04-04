@@ -18,7 +18,7 @@ After installing WevoaWeb through the Windows installer, a user should be able t
 
 ```text
 wevoa --version
-wevoa create app
+wevoa create my-app
 cd app
 wevoa start
 ```
@@ -32,7 +32,7 @@ WevoaWeb Runtime 786.0.0
 What each step does:
 
 - `wevoa --version`: confirms the runtime is installed globally and available on `PATH`
-- `wevoa create app`: generates a working starter project
+- `wevoa create my-app`: generates the default `app` starter project
 - `cd app`: enters the generated project folder
 - `wevoa start`: starts the built-in development server
 
@@ -349,7 +349,7 @@ After installation, the user should be able to type:
 
 ```text
 wevoa --version
-wevoa create app
+wevoa create dashboard admin-panel
 wevoa start
 ```
 

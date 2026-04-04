@@ -12,10 +12,9 @@ If WevoaWeb is already installed globally, the fastest path is:
 
 ```text
 wevoa --version
-wevoa create app
+wevoa create dashboard app
 cd app
 wevoa search auth
-wevoa install auth
 wevoa start
 ```
 
@@ -28,10 +27,9 @@ WevoaWeb Runtime 786.0.0
 What each step does:
 
 - `wevoa --version` confirms the global runtime is available
-- `wevoa create app` scaffolds a new starter project
+- `wevoa create dashboard app` scaffolds the official dashboard starter
 - `cd app` enters the generated project folder
 - `wevoa search auth` discovers the official auth package from the registry cache
-- `wevoa install auth` installs the first core package into `packages/`
 - `wevoa start` launches the development server
 
 If you do not have WevoaWeb installed yet, use one of the build or install paths below.
@@ -99,6 +97,13 @@ Or use the release script:
 cd .\my-app
 ```
 
+You can also choose the built-in dashboard starter explicitly:
+
+```powershell
+.\wevoa.exe create dashboard admin-panel
+cd .\admin-panel
+```
+
 ## 3. Start the Dev Server
 
 ```powershell
@@ -108,7 +113,7 @@ cd .\my-app
 Open:
 
 ```text
-http://localhost:3000
+http://localhost:786
 ```
 
 ## 4. Edit Backend and Frontend
@@ -122,26 +127,18 @@ Generated projects use:
 
 Routes now live in `app/main.wev`.
 
-`app/main.wev`
+Default `app` starter route example:
 
 ```text
 const site = {
-  title: "Welcome to WevoaWeb",
-  subtitle: "Build web apps without JavaScript"
+  app_name: "my-app",
+  title: "My App"
 }
 
 route "/" {
 return view("index.wev", {
-  title: "WevoaWeb",
+  title: site.title,
   site: site
-})
-}
-
-route "/docs" {
-return view("docs.wev", {
-  title: "Documentation",
-  site: site,
-  sections: []
 })
 }
 ```

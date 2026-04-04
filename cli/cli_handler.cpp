@@ -133,15 +133,21 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
 
     if (subcommand == "create") {
         if (argc < 3) {
-            throw CLIUsageError("create requires a project name.");
+            throw CLIUsageError("create requires a project name, or a template and project name.");
         }
 
-        if (argc > 3) {
-            throw CLIUsageError("create accepts exactly one project name.");
+        if (argc > 4) {
+            throw CLIUsageError("create accepts <project-name> or <template> <project-name>.");
         }
 
         command.type = CommandType::Create;
-        command.projectName = argv[2];
+        if (argc == 3) {
+            command.templateName = "app";
+            command.projectName = argv[2];
+        } else {
+            command.templateName = argv[2];
+            command.projectName = argv[3];
+        }
         return command;
     }
 
@@ -272,10 +278,12 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "WevoaWeb Developer CLI\n";
     std::cout << '\n';
     std::cout << "Usage:\n";
-    std::cout << "  " << executableName << " start [--port 3000] [--app app] [--views views] [--public public]\n";
+    std::cout << "  " << executableName << " start [--port " << kDefaultPort
+              << "] [--app app] [--views views] [--public public]\n";
     std::cout << "  " << executableName << " create <project-name>\n";
+    std::cout << "  " << executableName << " create <template> <project-name>\n";
     std::cout << "  " << executableName << " build [--output build]\n";
-    std::cout << "  " << executableName << " serve [--port 3000] [--output build]\n";
+    std::cout << "  " << executableName << " serve [--port " << kDefaultPort << "] [--output build]\n";
     std::cout << "  " << executableName << " migrate\n";
     std::cout << "  " << executableName << " make:migration <name>\n";
     std::cout << "  " << executableName << " install <package-or-path>\n";
@@ -289,7 +297,7 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << '\n';
     std::cout << "Commands:\n";
     std::cout << "  start        Start the development server and file watcher\n";
-    std::cout << "  create       Generate a new WevoaWeb project scaffold\n";
+    std::cout << "  create       Generate a new WevoaWeb project using the app or dashboard starter\n";
     std::cout << "  build        Validate and bundle the current app into a production output folder\n";
     std::cout << "  serve        Run the built app from the production output folder\n";
     std::cout << "  migrate      Apply pending SQL migrations in the current project\n";
@@ -312,7 +320,8 @@ void CLIHandler::printHelp(const std::string& executableName) const {
 std::uint16_t CLIHandler::parsePort(const std::string& value) const {
     std::size_t parsedCharacters = 0;
     const unsigned long parsedPort = std::stoul(value, &parsedCharacters, 10);
-    if (parsedCharacters != value.size() || parsedPort > std::numeric_limits<std::uint16_t>::max()) {
+    if (parsedCharacters != value.size() || parsedPort == 0 ||
+        parsedPort > std::numeric_limits<std::uint16_t>::max()) {
         throw CLIUsageError("Invalid port: " + value);
     }
 

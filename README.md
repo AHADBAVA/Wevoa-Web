@@ -40,7 +40,7 @@ WevoaWeb Runtime 786.0.0
 - Password hashing, CSRF helpers, SQL migrations, and local package installation
 - Built-in core packages (`auth`, `db`, `utils`) with `wevoa install`, `wevoa remove`, and `wevoa list`
 - Registry-backed package discovery with `wevoa search` and `wevoa info <package>`
-- Clean starter UI, docs page, and example form for new projects
+- Two official starter packs: `app` and `dashboard`
 
 ## Quick Start
 
@@ -48,20 +48,18 @@ Installed runtime flow:
 
 ```text
 wevoa --version
-wevoa create app
+wevoa create dashboard app
 cd app
 wevoa search auth
-wevoa install auth
 wevoa start
 ```
 
 What each step does:
 
 - `wevoa --version` confirms the runtime is installed globally
-- `wevoa create app` creates a starter project
+- `wevoa create dashboard app` creates a dashboard starter project
 - `cd app` moves into the generated project
 - `wevoa search auth` discovers the official auth package from the registry cache
-- `wevoa install auth` installs the first core package into `packages/`
 - `wevoa start` launches the development server
 
 Source build flow:
@@ -98,7 +96,7 @@ cd .\my-app
 Open:
 
 ```text
-http://localhost:3000
+http://localhost:786
 ```
 
 Build and serve a production bundle:
@@ -197,12 +195,12 @@ Current language features:
 
 - `lexer/`, `parser/`, `ast/`, `interpreter/`, and `runtime/`
 - `server/` for route loading, HTTP handling, and static assets
-- `cli/` for `start`, `create`, `build`, `serve`, and `version`
+- `cli/` for `start`, `create`, `build`, `serve`, package commands, and `version`
 - `scripts/` for release builds and installation helpers
+- `templates/` for the official `app` and `dashboard` starter packs
 - `watcher/` for development reload support
 - `examples/` for language samples and smoke-test scripts
 - framework docs and developer references
-- official example apps in `examples/auth-demo`, `examples/dashboard-demo`, and `examples/blog-demo`
 
 ## Installation
 
@@ -234,6 +232,7 @@ After installation:
 ```text
 wevoa --version
 wevoa create my-app
+wevoa create dashboard admin-panel
 ```
 
 GUI installation on Windows:
@@ -245,6 +244,7 @@ GUI installation on Windows:
 ## Documentation
 
 - [Framework Overview](docs/framework-overview.md)
+- [v786 Platform Snapshot](docs/v786.md)
 - [Quick Start](docs/quickstart.md)
 - [Language Reference](docs/language-reference.md)
 - [Architecture](docs/architecture.md)

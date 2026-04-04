@@ -13,10 +13,12 @@
 #include <stdexcept>
 #include <string>
 #include <thread>
+#include <limits>
 #include <unordered_map>
 #include <utility>
 
 #include "runtime/config_loader.h"
+#include "utils/defaults.h"
 #include "utils/error.h"
 
 #ifdef _WIN32
@@ -136,6 +138,25 @@ class Socket final {
     NativeSocket socket_ = kInvalidSocket;
 };
 
+class PortInUseError : public std::runtime_error {
+  public:
+    explicit PortInUseError(std::uint16_t port, const std::string& message)
+        : std::runtime_error(message), port_(port) {}
+
+    [[nodiscard]] std::uint16_t port() const {
+        return port_;
+    }
+
+  private:
+    std::uint16_t port_;
+};
+
+struct ListeningSocketResult {
+    Socket socket;
+    std::uint16_t boundPort = 0;
+    bool portAdjusted = false;
+};
+
 Socket createListeningSocket(std::uint16_t port) {
     Socket listenSocket(::socket(AF_INET, SOCK_STREAM, 0));
     if (!listenSocket.valid()) {
@@ -157,8 +178,22 @@ Socket createListeningSocket(std::uint16_t port) {
     address.sin_port = htons(port);
 
     if (::bind(listenSocket.native(), reinterpret_cast<const sockaddr*>(&address), sizeof(address)) < 0) {
-        throw std::runtime_error("Unable to bind socket on port " + std::to_string(port) + ": " +
-                                 lastSocketErrorMessage());
+        const std::string message =
+            "Unable to bind socket on port " + std::to_string(port) + ": " + lastSocketErrorMessage();
+#ifdef _WIN32
+        if (WSAGetLastError() == WSAEADDRINUSE) {
+            throw PortInUseError(port, message);
+        }
+        if (WSAGetLastError() == WSAEACCES) {
+            throw PortInUseError(port, message);
+        }
+#else
+        if (errno == EADDRINUSE) {
+            throw PortInUseError(port, message);
+        }
+#endif
+
+        throw std::runtime_error(message);
     }
 
     if (::listen(listenSocket.native(), 16) < 0) {
@@ -166,6 +201,29 @@ Socket createListeningSocket(std::uint16_t port) {
     }
 
     return listenSocket;
+}
+
+ListeningSocketResult createListeningSocketWithFallback(std::uint16_t preferredPort) {
+    std::uint32_t candidatePort = preferredPort;
+    std::size_t attempts = 0;
+
+    while (candidatePort <= std::numeric_limits<std::uint16_t>::max() && attempts < kPortBindRetryAttempts) {
+        try {
+            auto socket = createListeningSocket(static_cast<std::uint16_t>(candidatePort));
+            return ListeningSocketResult {
+                std::move(socket),
+                static_cast<std::uint16_t>(candidatePort),
+                static_cast<std::uint16_t>(candidatePort) != preferredPort,
+            };
+        } catch (const PortInUseError&) {
+            ++candidatePort;
+            ++attempts;
+            continue;
+        }
+    }
+
+    throw std::runtime_error("Unable to bind socket on port " + std::to_string(preferredPort) +
+                             " or the next " + std::to_string(kPortBindRetryAttempts - 1) + " ports.");
 }
 
 void configureClientSocket(NativeSocket socket) {
@@ -648,16 +706,29 @@ HttpServer::HttpServer(WebApplication& application,
 
 void HttpServer::run() {
     stopRequested_ = false;
-    SocketSystem socketSystem;
-    Socket listenSocket = createListeningSocket(port_);
-
-    workers_.clear();
-    workers_.reserve(workerCount_);
-    for (std::size_t index = 0; index < workerCount_; ++index) {
-        workers_.emplace_back([this]() { workerLoop(); });
+    {
+        std::lock_guard<std::mutex> lock(startupMutex_);
+        startupComplete_ = false;
+        startupErrorMessage_.clear();
+        portAdjusted_ = false;
+        boundPort_ = 0;
     }
 
+    Socket listenSocket;
+
     try {
+        SocketSystem socketSystem;
+        auto listeningSocket = createListeningSocketWithFallback(port_);
+        port_ = listeningSocket.boundPort;
+        markStartupSuccess(listeningSocket.boundPort, listeningSocket.portAdjusted);
+        listenSocket = std::move(listeningSocket.socket);
+
+        workers_.clear();
+        workers_.reserve(workerCount_);
+        for (std::size_t index = 0; index < workerCount_; ++index) {
+            workers_.emplace_back([this]() { workerLoop(); });
+        }
+
         while (!stopRequested_) {
             fd_set readSet;
             FD_ZERO(&readSet);
@@ -774,7 +845,23 @@ void HttpServer::run() {
             }
             queueReady_.notify_one();
         }
+    } catch (const std::exception& error) {
+        if (!startupComplete_) {
+            markStartupFailure(error.what());
+        }
+        stopRequested_ = true;
+        queueReady_.notify_all();
+        for (auto& worker : workers_) {
+            if (worker.joinable()) {
+                worker.join();
+            }
+        }
+        workers_.clear();
+        throw;
     } catch (...) {
+        if (!startupComplete_) {
+            markStartupFailure("HTTP server failed to start.");
+        }
         stopRequested_ = true;
         queueReady_.notify_all();
         for (auto& worker : workers_) {
@@ -801,6 +888,26 @@ void HttpServer::stop() {
     queueReady_.notify_all();
 }
 
+bool HttpServer::waitForStartup(std::chrono::milliseconds timeout) {
+    std::unique_lock<std::mutex> lock(startupMutex_);
+    return startupReady_.wait_for(lock, timeout, [this]() { return startupComplete_; });
+}
+
+std::uint16_t HttpServer::boundPort() const {
+    std::lock_guard<std::mutex> lock(startupMutex_);
+    return boundPort_;
+}
+
+bool HttpServer::portAdjusted() const {
+    std::lock_guard<std::mutex> lock(startupMutex_);
+    return portAdjusted_;
+}
+
+std::string HttpServer::startupError() const {
+    std::lock_guard<std::mutex> lock(startupMutex_);
+    return startupErrorMessage_;
+}
+
 void HttpServer::workerLoop() {
     while (true) {
         std::function<void()> task;
@@ -820,6 +927,28 @@ void HttpServer::workerLoop() {
 
         task();
     }
+}
+
+void HttpServer::markStartupSuccess(std::uint16_t boundPort, bool portAdjusted) {
+    {
+        std::lock_guard<std::mutex> lock(startupMutex_);
+        startupComplete_ = true;
+        startupErrorMessage_.clear();
+        portAdjusted_ = portAdjusted;
+        boundPort_ = boundPort;
+    }
+    startupReady_.notify_all();
+}
+
+void HttpServer::markStartupFailure(const std::string& errorMessage) {
+    {
+        std::lock_guard<std::mutex> lock(startupMutex_);
+        startupComplete_ = true;
+        startupErrorMessage_ = errorMessage;
+        portAdjusted_ = false;
+        boundPort_ = 0;
+    }
+    startupReady_.notify_all();
 }
 
 HttpResponse HttpServer::dispatch(const HttpRequest& request) {

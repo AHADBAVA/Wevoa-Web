@@ -1,0 +1,13 @@
+{
+  "name": "auth",
+  "version": "1.0.0",
+  "source": "core",
+  "description": "Authentication helpers with session-backed login and registration flows.",
+  "repo": "https://github.com/wevoa/packages-auth",
+  "usage": "import \"@auth\"\n\nlet user = auth_register(\"demo@example.com\", \"secret123\", { role: \"admin\" })\nauth_login(\"demo@example.com\", \"secret123\")",
+  "isOfficial": true,
+  "dependencies": {
+    "utils": "^1.0.0",
+    "db": "^1.0.0"
+  }
+}

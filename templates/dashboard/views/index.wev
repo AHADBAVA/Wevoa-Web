@@ -1,0 +1,129 @@
+<header class="page-header">
+  <div>
+    <p class="eyebrow">Official Starter</p>
+    <h2>Dashboard</h2>
+    <p class="page-lead">A publishable server-first starter with account creation, protected routes, and task CRUD built on top of `@auth` and `@db`.</p>
+  </div>
+  {% if mode == "dashboard" %}
+  <div class="page-meta">
+    <p><strong>{{ task_total }}</strong> task{% if task_total != 1 %}s{% end %}</p>
+    <p>{{ user.email }}</p>
+  </div>
+  {% end %}
+</header>
+
+{% if error %}
+<div class="notice notice-error">{{ error }}</div>
+{% end %}
+
+{% if success %}
+<div class="notice notice-success">{{ success }}</div>
+{% end %}
+
+{% if mode == "login" %}
+<section class="auth-grid">
+  <div class="panel">
+    <h3>Create account</h3>
+    <p class="muted">Start with a member account so you can create and manage your own tasks.</p>
+    <form method="POST" action="/register">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label for="register-email">Email</label>
+      <input id="register-email" type="email" name="email" placeholder="you@example.com" required>
+      <label for="register-password">Password</label>
+      <input id="register-password" type="password" name="password" placeholder="Choose a password" required>
+      <button type="submit">Create account</button>
+    </form>
+  </div>
+
+  <div class="panel">
+    <h3>Sign in</h3>
+    <p class="muted">Use an existing account to continue to the protected dashboard.</p>
+    <form method="POST" action="/login">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label for="login-email">Email</label>
+      <input id="login-email" type="email" name="email" placeholder="you@example.com" required>
+      <label for="login-password">Password</label>
+      <input id="login-password" type="password" name="password" placeholder="Enter your password" required>
+      <button type="submit">Login</button>
+    </form>
+  </div>
+</section>
+{% else %}
+<section class="dashboard-grid">
+  <div class="panel composer-card">
+    <div class="section-head">
+      <div>
+        <h3>New task</h3>
+        <p class="muted">Add a task for your personal dashboard queue.</p>
+      </div>
+      <form method="POST" action="/logout" class="inline-form">
+        <input type="hidden" name="_csrf" value="{{ csrf }}">
+        <button type="submit" class="secondary-button">Logout</button>
+      </form>
+    </div>
+
+    <form method="POST" action="/tasks">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label for="new-task-title">Task title</label>
+      <input id="new-task-title" type="text" name="title" placeholder="Ship your next milestone" required>
+      <button type="submit">Add task</button>
+    </form>
+  </div>
+
+  <div class="panel task-list-card">
+    <div class="section-head">
+      <div>
+        <h3>Your tasks</h3>
+        <p class="muted">Only your signed-in tasks are shown here.</p>
+      </div>
+    </div>
+
+    {% if len(tasks) == 0 %}
+    <div class="empty-state">
+      <p>No tasks yet.</p>
+      <p class="muted">Create your first task above to see the dashboard flow in action.</p>
+    </div>
+    {% else %}
+    {% for task in tasks %}
+    <article class="task-item">
+      <div class="task-copy">
+        <p class="task-id">Task #{{ task.id }}</p>
+        <h4>{{ task.title }}</h4>
+        <p class="muted">Owner: {{ task.owner_email }}</p>
+      </div>
+      <div class="task-actions">
+        <a href="/?edit={{ task.id }}" class="button-link">Edit</a>
+        <form method="POST" action="/tasks/{{ task.id }}/delete" class="inline-form">
+          <input type="hidden" name="_csrf" value="{{ csrf }}">
+          <button type="submit" class="danger-button">Delete</button>
+        </form>
+      </div>
+    </article>
+    {% end %}
+    {% end %}
+  </div>
+</section>
+
+{% if edit_mode %}
+<div class="modal-backdrop">
+  <section class="modal-card">
+    <div class="modal-header">
+      <div>
+        <p class="eyebrow">Update task</p>
+        <h3>Edit task</h3>
+      </div>
+      <a href="/" class="button-link secondary-link">Close</a>
+    </div>
+    <form method="POST" action="/tasks/{{ edit_task.id }}/update">
+      <input type="hidden" name="_csrf" value="{{ csrf }}">
+      <label for="edit-title">Task title</label>
+      <input id="edit-title" type="text" name="title" value="{{ edit_task.title }}" required>
+      <div class="modal-actions">
+        <button type="submit">Update task</button>
+        <a href="/" class="button-link secondary-link">Cancel</a>
+      </div>
+    </form>
+  </section>
+</div>
+{% end %}
+{% end %}

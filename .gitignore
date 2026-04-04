@@ -45,6 +45,8 @@ storage/*.sqlite-wal
 */storage/*.sqlite
 */storage/*.sqlite-shm
 */storage/*.sqlite-wal
+**/storage/*.sqlite-shm
+**/storage/*.sqlite-wal
 
 # Temporary probe and run files
 sqlite-probe.exe

@@ -1,0 +1,11 @@
+const site = {
+  app_name: "{{APP_NAME}}",
+  title: "{{PROJECT_TITLE}}"
+}
+
+route "/" {
+return view("index.wev", {
+  title: site.title,
+  site: site
+})
+}

@@ -18,6 +18,8 @@ $resolvedInstallDir = if ([System.IO.Path]::IsPathRooted($InstallDir)) {
     [System.IO.Path]::GetFullPath((Join-Path $root $InstallDir))
 }
 $destinationPath = Join-Path $resolvedInstallDir "wevoa.exe"
+$templatesSource = Join-Path (Split-Path -Parent $resolvedBinaryPath) "templates"
+$templatesDestination = Join-Path $resolvedInstallDir "templates"
 
 if (-not (Test-Path $resolvedBinaryPath)) {
     throw "Binary not found: $resolvedBinaryPath. Run scripts/build-release.ps1 first."
@@ -25,6 +27,12 @@ if (-not (Test-Path $resolvedBinaryPath)) {
 
 New-Item -ItemType Directory -Force -Path $resolvedInstallDir | Out-Null
 Copy-Item -Force $resolvedBinaryPath $destinationPath
+if (Test-Path $templatesDestination) {
+    Remove-Item -Recurse -Force $templatesDestination
+}
+if (Test-Path $templatesSource) {
+    Copy-Item -Recurse -Force $templatesSource $templatesDestination
+}
 
 if (-not $SkipPathUpdate) {
     $currentUserPath = [Environment]::GetEnvironmentVariable("Path", "User")
@@ -49,4 +57,7 @@ if (-not $SkipPathUpdate) {
 }
 
 Write-Host "[Wevoa] Installed runtime to: $destinationPath"
+if (Test-Path $templatesDestination) {
+    Write-Host "[Wevoa] Installed starter templates to: $templatesDestination"
+}
 Write-Host "[Wevoa] Try: wevoa --version"

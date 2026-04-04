@@ -4,6 +4,8 @@
 #include <string>
 #include <stdexcept>
 
+#include "utils/defaults.h"
+
 namespace wevoaweb {
 
 class CLIUsageError : public std::runtime_error {
@@ -18,7 +20,7 @@ struct ProjectCommandOptions {
 };
 
 struct StartCommandOptions : ProjectCommandOptions {
-    std::uint16_t port = 3000;
+    std::uint16_t port = kDefaultPort;
     bool debugAst = false;
     bool portSpecified = false;
 };
@@ -28,7 +30,7 @@ struct BuildCommandOptions : ProjectCommandOptions {
 };
 
 struct ServeCommandOptions {
-    std::uint16_t port = 3000;
+    std::uint16_t port = kDefaultPort;
     std::string buildDirectory = "build";
     bool portSpecified = false;
 };
@@ -74,6 +76,7 @@ class CLIHandler {
         BuildCommandOptions buildOptions {};
         ServeCommandOptions serveOptions {};
         InspectCommandOptions inspectOptions {};
+        std::string templateName = "app";
         std::string projectName;
         std::string migrationName;
         std::string packageName;

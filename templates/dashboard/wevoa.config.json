@@ -1,0 +1,33 @@
+{
+  "name": "{{PROJECT_TITLE}}",
+  "port": {{PORT}},
+  "env": "dev",
+  "database": {
+    "path": "storage/{{APP_NAME}}.sqlite"
+  },
+  "worker_threads": 4,
+  "max_queue_size": 64,
+  "max_template_cache_size": 256,
+  "max_fragment_cache_size": 512,
+  "session_ttl": 3600,
+  "max_session_count": 4096,
+  "performance_metrics": false,
+  "packages": [
+    {
+      "name": "auth",
+      "version": "1.0.0",
+      "source": "core"
+    },
+    {
+      "name": "db",
+      "version": "1.0.0",
+      "source": "core"
+    },
+    {
+      "name": "utils",
+      "version": "1.0.0",
+      "source": "core"
+    }
+  ],
+  "open_browser": true
+}

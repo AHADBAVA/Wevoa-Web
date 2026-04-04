@@ -1,0 +1,9 @@
+extend "layout.wev"
+
+section content {
+<section class="hero">
+  <p class="eyebrow">Starter</p>
+  <h1>{{ site.title }}</h1>
+  <p>Welcome to your new WevoaWeb app.</p>
+</section>
+}

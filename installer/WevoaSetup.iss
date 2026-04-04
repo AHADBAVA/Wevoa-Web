@@ -37,6 +37,7 @@ Name: "desktopicon"; Description: "Create Desktop shortcut"; GroupDescription: "
 
 [Files]
 Source: "..\dist\windows\wevoa.exe"; DestDir: "{app}"; Flags: ignoreversion
+Source: "..\dist\windows\templates\*"; DestDir: "{app}\templates"; Flags: ignoreversion recursesubdirs createallsubdirs
 Source: "..\README.md"; DestDir: "{app}"; DestName: "README.md"; Flags: ignoreversion
 Source: "..\LICENSE"; DestDir: "{app}"; DestName: "LICENSE.txt"; Flags: ignoreversion
 

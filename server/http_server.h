@@ -1,12 +1,14 @@
 #pragma once
 
 #include <atomic>
+#include <chrono>
 #include <cstddef>
 #include <condition_variable>
 #include <cstdint>
 #include <functional>
 #include <mutex>
 #include <queue>
+#include <string>
 #include <thread>
 #include <vector>
 
@@ -29,10 +31,16 @@ class HttpServer {
 
     void run();
     void stop();
+    bool waitForStartup(std::chrono::milliseconds timeout);
+    [[nodiscard]] std::uint16_t boundPort() const;
+    [[nodiscard]] bool portAdjusted() const;
+    [[nodiscard]] std::string startupError() const;
 
   private:
     HttpResponse dispatch(const HttpRequest& request);
     void workerLoop();
+    void markStartupSuccess(std::uint16_t boundPort, bool portAdjusted);
+    void markStartupFailure(const std::string& errorMessage);
 
     WebApplication& application_;
     std::uint16_t port_;
@@ -44,6 +52,12 @@ class HttpServer {
     std::condition_variable queueReady_;
     std::queue<std::function<void()>> queuedRequests_;
     std::vector<std::thread> workers_;
+    mutable std::mutex startupMutex_;
+    std::condition_variable startupReady_;
+    bool startupComplete_ = false;
+    bool portAdjusted_ = false;
+    std::uint16_t boundPort_ = 0;
+    std::string startupErrorMessage_;
 };
 
 }  // namespace wevoaweb::server

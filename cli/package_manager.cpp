@@ -269,7 +269,7 @@ std::string authPackageTemplate() {
            "\n"
            "func auth_require() {\n"
            "  if (!session.get(\"auth_user\")) {\n"
-           "    return redirect(\"/login\")\n"
+           "    return redirect(\"/\")\n"
            "  }\n"
            "}\n";
 }
@@ -659,6 +659,19 @@ void ensureReadmeFile(const FileWriter& writer,
     }
 
     writer.writeTextFile(readmePath, scaffoldPackageReadme(manifest));
+}
+
+void refreshOfficialPackageFiles(const FileWriter& writer,
+                                 const std::filesystem::path& packageRoot,
+                                 const PackageManifest& manifest) {
+    if (!manifest.isOfficial) {
+        return;
+    }
+
+    writer.createDirectory(packageRoot);
+    writer.writeTextFile(packageRoot / "main.wev", corePackageSource(manifest.name));
+    writeManifest(writer, packageRoot, manifest);
+    writer.writeTextFile(packageRoot / "README.md", corePackageReadme(manifest));
 }
 
 std::vector<std::string> cachedPackageVersions(const std::filesystem::path& cacheRoot, const std::string& packageName) {
@@ -1131,12 +1144,8 @@ PackageInstallResult PackageManager::install(const std::string& packageSpec, boo
                     }
                     manifest = coreFound->second;
                     cachePath = cacheRoot / manifest.name / manifest.version;
-                    if (!std::filesystem::exists(cachePath / "main.wev")) {
-                        writer_.createDirectory(cachePath);
-                        writer_.writeTextFile(cachePath / "main.wev", corePackageSource(manifest.name));
-                        writeManifest(writer_, cachePath, manifest);
-                        ensureReadmeFile(writer_, cachePath, manifest);
-                    }
+                    removeDirectoryIfExists(cachePath);
+                    refreshOfficialPackageFiles(writer_, cachePath, manifest);
                 } else if (isHttpUrl(manifest.source)) {
                     if (!std::filesystem::exists(cachePath / "main.wev")) {
                         writer_.createDirectory(cachePath);
@@ -1222,6 +1231,7 @@ PackageInstallResult PackageManager::install(const std::string& packageSpec, boo
             }
             removeDirectoryIfExists(result.destination);
             copyDirectoryContents(cachePath, result.destination);
+            refreshOfficialPackageFiles(writer_, result.destination, manifest);
             ensureMainFile(writer_, result.destination,
                            manifest,
                            installedFromCore ? corePackageSource(manifest.name) : "");

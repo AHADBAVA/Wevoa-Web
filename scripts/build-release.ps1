@@ -13,6 +13,8 @@ $resolvedOutputDir = if ([System.IO.Path]::IsPathRooted($OutputDir)) {
     [System.IO.Path]::GetFullPath((Join-Path $root $OutputDir))
 }
 $binaryPath = Join-Path $resolvedOutputDir $BinaryName
+$templatesSource = Join-Path $root "templates"
+$templatesOutput = Join-Path $resolvedOutputDir "templates"
 
 New-Item -ItemType Directory -Force -Path $resolvedOutputDir | Out-Null
 
@@ -78,5 +80,11 @@ if ($LASTEXITCODE -ne 0) {
 }
 
 Get-Item $binaryPath | Out-Null
+if (Test-Path $templatesOutput) {
+    Remove-Item -Recurse -Force $templatesOutput
+}
+if (Test-Path $templatesSource) {
+    Copy-Item -Recurse -Force $templatesSource $templatesOutput
+}
 Write-Host "[Wevoa] Release build complete"
 Write-Host "[Wevoa] Output: $binaryPath"

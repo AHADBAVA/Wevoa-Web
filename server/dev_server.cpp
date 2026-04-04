@@ -11,6 +11,7 @@
 
 #include "runtime/config_loader.h"
 #include "utils/browser_launcher.h"
+#include "utils/defaults.h"
 #include "utils/project_layout.h"
 #include "utils/keyboard.h"
 #include "utils/version.h"
@@ -21,7 +22,7 @@ namespace {
 
 constexpr auto kWatcherInterval = std::chrono::milliseconds(500);
 constexpr auto kControlLoopInterval = std::chrono::milliseconds(50);
-constexpr auto kStartupProbeDelay = std::chrono::milliseconds(100);
+constexpr auto kStartupProbeDelay = std::chrono::milliseconds(250);
 
 std::optional<std::uint16_t> portFromConfig(const Value& config) {
     if (!config.isObject()) {
@@ -328,6 +329,7 @@ void DevServer::launchServerLocked() {
         application_->maxQueueSize());
 
     HttpServer* server = httpServer_.get();
+    const auto requestedPort = options_.port;
     serverThread_ = std::thread([this, server]() {
         try {
             server->run();
@@ -337,6 +339,23 @@ void DevServer::launchServerLocked() {
             }
         }
     });
+
+    if (!server->waitForStartup(kStartupProbeDelay)) {
+        stopServerLocked();
+        throw std::runtime_error("Timed out while waiting for the HTTP server to start.");
+    }
+
+    const std::string startupError = server->startupError();
+    if (!startupError.empty()) {
+        stopServerLocked();
+        throw std::runtime_error(startupError);
+    }
+
+    const auto boundPort = server->boundPort();
+    if (boundPort != requestedPort) {
+        logger_.warn("Port " + std::to_string(requestedPort) + " is in use, trying next available port...");
+    }
+    options_.port = boundPort;
 }
 
 void DevServer::reportThreadFailure(const std::string& message) {

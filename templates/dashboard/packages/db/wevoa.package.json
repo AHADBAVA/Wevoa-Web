@@ -1,0 +1,10 @@
+{
+  "name": "db",
+  "version": "1.0.0",
+  "source": "core",
+  "description": "Convenience helpers around the configured SQLite connection.",
+  "repo": "https://github.com/wevoa/packages-db",
+  "usage": "import \"@db\"\n\nlet total = db_scalar(\"SELECT COUNT(*) FROM users\")",
+  "isOfficial": true,
+  "dependencies": {}
+}

@@ -40,16 +40,17 @@ std::optional<std::size_t> WevoaFunction::arity() const {
 Value WevoaFunction::call(Interpreter& interpreter,
                           const std::vector<Value>& arguments,
                           const SourceSpan& /*span*/) const {
-    auto environment = std::make_shared<Environment>(closure_);
+    auto requestContext = std::make_shared<Environment>(closure_);
     if (!interpreter.currentRequest().isNil()) {
-        environment->define("request", interpreter.currentRequest(), true);
+        requestContext->define("request", interpreter.currentRequest(), true);
     }
     if (!interpreter.currentRouteParams().isNil()) {
-        environment->define("params", interpreter.currentRouteParams(), true);
+        requestContext->define("params", interpreter.currentRouteParams(), true);
     }
     if (!interpreter.currentSession().isNil()) {
-        environment->define("session", interpreter.currentSession(), true);
+        requestContext->define("session", interpreter.currentSession(), true);
     }
+    auto environment = std::make_shared<Environment>(requestContext);
 
     for (std::size_t i = 0; i < declaration_->params.size(); ++i) {
         environment->define(declaration_->params[i], arguments[i], false);

@@ -25,7 +25,18 @@ fi
 
 INSTALL_PATH="${INSTALL_DIR}/wevoa"
 install -m 755 "${BINARY_PATH}" "${INSTALL_PATH}"
+TEMPLATES_SOURCE="$(cd "$(dirname "${BINARY_PATH}")" && pwd)/templates"
+TEMPLATES_DESTINATION="${INSTALL_DIR}/templates"
+if [[ -d "${TEMPLATES_DESTINATION}" ]]; then
+  rm -rf "${TEMPLATES_DESTINATION}"
+fi
+if [[ -d "${TEMPLATES_SOURCE}" ]]; then
+  cp -R "${TEMPLATES_SOURCE}" "${TEMPLATES_DESTINATION}"
+fi
 echo "[Wevoa] Installed runtime to: ${INSTALL_PATH}"
+if [[ -d "${TEMPLATES_DESTINATION}" ]]; then
+  echo "[Wevoa] Installed starter templates to: ${TEMPLATES_DESTINATION}"
+fi
 
 case ":${PATH}:" in
   *":${INSTALL_DIR}:"*)

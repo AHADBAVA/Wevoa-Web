@@ -1,0 +1,152 @@
+import "@auth"
+import "@db"
+
+func dashboard_boot() {
+auth_bootstrap()
+db_exec("CREATE TABLE IF NOT EXISTS tasks (id INTEGER PRIMARY KEY AUTOINCREMENT, title TEXT NOT NULL, owner_email TEXT NOT NULL)")
+return true
+}
+
+func dashboard_tasks() {
+return db_query_with("SELECT id, title, owner_email FROM tasks WHERE owner_email = ? ORDER BY id DESC LIMIT 20", [auth_user().email])
+}
+
+func dashboard_edit_task(task_id) {
+let rows = db_query_with("SELECT id, title FROM tasks WHERE id = ? AND owner_email = ? LIMIT 1", [task_id, auth_user().email])
+if (len(rows) > 0) {
+  return rows[0]
+}
+return { id: "", title: "" }
+}
+
+func dashboard_view(mode, error, success, edit_mode, edit_task) {
+let tasks = []
+let user = {}
+let task_total = 0
+
+if (mode == "dashboard") {
+  tasks = dashboard_tasks()
+  user = auth_user()
+  task_total = len(tasks)
+}
+
+return view("index.wev", {
+  title: "{{PROJECT_TITLE}}",
+  mode: mode,
+  tasks: tasks,
+  task_total: task_total,
+  user: user,
+  csrf: request.csrf(),
+  error: error,
+  success: success,
+  edit_mode: edit_mode,
+  edit_task: edit_task
+})
+}
+
+route "/" {
+dashboard_boot()
+
+let error = request.query("error")
+let success = request.query("success")
+
+if (!auth_signed_in()) {
+  return dashboard_view("login", error, success, false, { id: "", title: "" })
+}
+
+let edit_id = request.query("edit")
+let edit_task = { id: "", title: "" }
+let edit_mode = false
+
+if (edit_id) {
+  edit_task = dashboard_edit_task(edit_id)
+  if (edit_task.id) {
+    edit_mode = true
+  } else {
+    error = "Task not found"
+  }
+}
+
+return dashboard_view("dashboard", error, success, edit_mode, edit_task)
+}
+
+route "/login" method POST {
+dashboard_boot()
+
+let email = request.form("email")
+let password = request.form("password")
+
+if (!email || !password) {
+  return redirect("/?error=Enter%20your%20email%20and%20password")
+}
+
+let user = auth_login(email, password)
+if (!user) {
+  return redirect("/?error=Invalid%20email%20or%20password")
+}
+
+return redirect("/?success=Welcome%20back")
+}
+
+route "/register" method POST {
+dashboard_boot()
+
+let email = request.form("email")
+let password = request.form("password")
+
+if (!email || !password) {
+  return redirect("/?error=Enter%20an%20email%20and%20password")
+}
+
+let existing = db_find("SELECT id FROM users WHERE email = ? LIMIT 1", [email])
+if (existing) {
+  return redirect("/?error=An%20account%20with%20that%20email%20already%20exists")
+}
+
+auth_register(email, password, { role: "member" })
+return redirect("/?success=Account%20created")
+}
+
+route "/tasks" method POST middleware auth_require {
+dashboard_boot()
+
+let title = request.form("title")
+if (!title) {
+  return redirect("/?error=Enter%20a%20task%20title")
+}
+
+db_exec_with("INSERT INTO tasks (title, owner_email) VALUES (?, ?)", [title, auth_user().email])
+return redirect("/?success=Task%20added")
+}
+
+route "/tasks/:id/update" method POST middleware auth_require {
+dashboard_boot()
+
+let title = request.form("title")
+if (!title) {
+  return redirect("/?edit=" + params.id + "&error=Enter%20a%20task%20title")
+}
+
+let changes = db_exec_with("UPDATE tasks SET title = ? WHERE id = ? AND owner_email = ?", [title, params.id, auth_user().email])
+if (changes == 0) {
+  return redirect("/?error=Task%20not%20found")
+}
+
+return redirect("/?success=Task%20updated")
+}
+
+route "/tasks/:id/delete" method POST middleware auth_require {
+dashboard_boot()
+
+let changes = db_exec_with("DELETE FROM tasks WHERE id = ? AND owner_email = ?", [params.id, auth_user().email])
+if (changes == 0) {
+  return redirect("/?error=Task%20not%20found")
+}
+
+return redirect("/?success=Task%20deleted")
+}
+
+route "/logout" method POST middleware auth_require {
+auth_logout()
+return redirect("/?success=Signed%20out")
+}

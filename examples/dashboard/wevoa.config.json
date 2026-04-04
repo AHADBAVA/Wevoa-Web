@@ -1,5 +1,5 @@
 {
-  "port": 3000,
+  "port": 786,
   "env": "dev",
   "name": "WevoaWeb Dashboard Example",
   "open_browser": true

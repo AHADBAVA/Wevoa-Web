@@ -14,6 +14,8 @@ fi
 
 mkdir -p "${RESOLVED_OUTPUT_DIR}"
 OUTPUT_PATH="${RESOLVED_OUTPUT_DIR}/${BINARY_NAME}"
+TEMPLATES_SOURCE="${ROOT_DIR}/templates"
+TEMPLATES_OUTPUT="${RESOLVED_OUTPUT_DIR}/templates"
 
 SOURCES=(
   "main.cpp"
@@ -75,5 +77,9 @@ ARGS+=(-o "${OUTPUT_PATH}" -lsqlite3)
 echo "[Wevoa] Building Linux release binary..."
 g++ "${ARGS[@]}"
 chmod +x "${OUTPUT_PATH}"
+rm -rf "${TEMPLATES_OUTPUT}"
+if [[ -d "${TEMPLATES_SOURCE}" ]]; then
+  cp -R "${TEMPLATES_SOURCE}" "${TEMPLATES_OUTPUT}"
+fi
 echo "[Wevoa] Release build complete"
 echo "[Wevoa] Output: ${OUTPUT_PATH}"

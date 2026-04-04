@@ -1,0 +1,10 @@
+{
+  "name": "{{PROJECT_TITLE}}",
+  "port": {{PORT}},
+  "env": "dev",
+  "database": {
+    "path": "storage/app.sqlite"
+  },
+  "packages": [],
+  "open_browser": true
+}

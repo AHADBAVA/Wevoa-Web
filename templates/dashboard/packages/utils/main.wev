@@ -1,0 +1,42 @@
+const utils = {
+  version: "786.0.0"
+}
+
+func utils_text(value, fallback) {
+  if (value) {
+    return value
+  }
+  return fallback
+}
+
+func utils_present(value) {
+  if (value) {
+    return true
+  }
+  return false
+}
+
+func utils_lower(value) {
+  return value
+}
+
+func utils_title(value, fallback) {
+  if (value) {
+    return value
+  }
+  return fallback
+}
+
+func utils_success(message) {
+  return json({
+    success: true,
+    message: message
+  })
+}
+
+func utils_failure(message) {
+  return json({
+    success: false,
+    message: message
+  })
+}

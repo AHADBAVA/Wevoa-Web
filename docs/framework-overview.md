@@ -459,7 +459,7 @@ Recommended user path:
 1. install through `WevoaSetup.exe`
 2. open a new terminal
 3. run `wevoa --version`
-4. run `wevoa create app`
+4. run `wevoa create my-app`
 5. run `wevoa start`
 
 This gives WevoaWeb a real installable runtime story rather than a "clone the repo and build it yourself" story only.
