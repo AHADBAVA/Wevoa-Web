@@ -1,0 +1,35 @@
+{
+  "packages": {
+    "auth": {
+      "name": "auth",
+      "version": "1.0.0",
+      "source": "core://auth",
+      "repo": "https://github.com/wevoa/packages-auth",
+      "description": "Authentication helpers with session-backed login and registration flows.",
+      "usage": "import \"@auth\"\n\nlet user = auth_register(\"demo@example.com\", \"secret123\", { role: \"admin\" })\nauth_login(\"demo@example.com\", \"secret123\")",
+      "isOfficial": true,
+      "dependencies": {
+        "utils": "^1.0.0",
+        "db": "^1.0.0"
+      }
+    },
+    "db": {
+      "name": "db",
+      "version": "1.0.0",
+      "source": "core://db",
+      "repo": "https://github.com/wevoa/packages-db",
+      "description": "Convenience helpers around the configured SQLite connection.",
+      "usage": "import \"@db\"\n\nlet total = db_scalar(\"SELECT COUNT(*) FROM users\")\nlet rows = db_query_with(\"SELECT * FROM users WHERE role = ?\", [\"admin\"])",
+      "isOfficial": true
+    },
+    "utils": {
+      "name": "utils",
+      "version": "1.0.0",
+      "source": "core://utils",
+      "repo": "https://github.com/wevoa/packages-utils",
+      "description": "Common response, string, and formatting helpers for WevoaWeb apps.",
+      "usage": "import \"@utils\"\n\nreturn utils_success(\"Ready\")",
+      "isOfficial": true
+    }
+  }
+}

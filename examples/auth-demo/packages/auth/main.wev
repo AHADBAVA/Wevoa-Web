@@ -1,0 +1,36 @@
+import "@utils"
+
+func auth_hash_password(password) {
+  return hash(password)
+}
+
+func auth_verify_password(password, digest) {
+  return verify(password, digest)
+}
+
+func auth_user() {
+  return session.get("auth_user")
+}
+
+func auth_signed_in() {
+  if (session.get("auth_user")) {
+    return true
+  }
+  return false
+}
+
+func auth_sign_in(user) {
+  session.set("auth_user", user)
+  return user
+}
+
+func auth_sign_out() {
+  session.delete("auth_user")
+  return true
+}
+
+func auth_require() {
+  if (!session.get("auth_user")) {
+    return redirect("/login")
+  }
+}

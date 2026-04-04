@@ -2,6 +2,10 @@
 
 This guide gets you from source checkout to a running WevoaWeb app.
 
+For a broader explanation of what the language and framework can do, what is already strong, and what the current limitations still are, read:
+
+- [Framework Overview](framework-overview.md)
+
 ## Fastest Path After Install
 
 If WevoaWeb is already installed globally, the fastest path is:
@@ -10,6 +14,8 @@ If WevoaWeb is already installed globally, the fastest path is:
 wevoa --version
 wevoa create app
 cd app
+wevoa search auth
+wevoa install auth
 wevoa start
 ```
 
@@ -24,6 +30,8 @@ What each step does:
 - `wevoa --version` confirms the global runtime is available
 - `wevoa create app` scaffolds a new starter project
 - `cd app` enters the generated project folder
+- `wevoa search auth` discovers the official auth package from the registry cache
+- `wevoa install auth` installs the first core package into `packages/`
 - `wevoa start` launches the development server
 
 If you do not have WevoaWeb installed yet, use one of the build or install paths below.
@@ -110,6 +118,7 @@ Generated projects use:
 - `app/` for backend route code
 - `views/` for templates and layouts
 - `public/` for static assets
+- `packages/` for installed reusable packages
 
 Routes now live in `app/main.wev`.
 
@@ -167,7 +176,12 @@ The file watcher also reloads when files in `app/`, `views/`, or `public/` chang
 ..\wevoa.exe info --global
 ..\wevoa.exe make:migration create_users
 ..\wevoa.exe migrate
-..\wevoa.exe install my-local-package
+..\wevoa.exe list --core
+..\wevoa.exe search auth
+..\wevoa.exe info auth
+..\wevoa.exe install auth
+..\wevoa.exe install db
+..\wevoa.exe list
 ..\wevoa.exe build
 ..\wevoa.exe serve
 ```

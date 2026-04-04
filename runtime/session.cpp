@@ -70,7 +70,8 @@ std::filesystem::path normalizePath(const std::filesystem::path& path) {
     return error ? absolutePath : canonicalPath;
 }
 
-std::filesystem::path resolvePackageImportPath(const std::string& packageSpecifier) {
+std::filesystem::path resolvePackageImportPath(const std::string& packageSpecifier,
+                                               const std::vector<std::filesystem::path>& packageRoots) {
     std::string specifier = packageSpecifier;
     if (!specifier.empty() && specifier.front() == '@') {
         specifier.erase(specifier.begin());
@@ -84,14 +85,26 @@ std::filesystem::path resolvePackageImportPath(const std::string& packageSpecifi
     const std::string packageName = separator == std::string::npos ? specifier : specifier.substr(0, separator);
     const std::string remainder = separator == std::string::npos ? "" : specifier.substr(separator + 1);
 
-    std::filesystem::path resolved = std::filesystem::current_path() / "packages" / packageName;
-    if (remainder.empty()) {
-        resolved /= "main.wev";
-    } else {
-        resolved /= remainder;
+    const auto resolveUnderRoot = [&](const std::filesystem::path& root) {
+        std::filesystem::path resolved = root / packageName;
+        resolved /= remainder.empty() ? std::filesystem::path("main.wev") : std::filesystem::path(remainder);
+        return resolved;
+    };
+
+    std::error_code error;
+    for (const auto& root : packageRoots) {
+        const auto candidate = resolveUnderRoot(root);
+        if (std::filesystem::exists(candidate, error) && !error) {
+            return candidate;
+        }
+        error.clear();
     }
 
-    return resolved;
+    if (!packageRoots.empty()) {
+        return resolveUnderRoot(packageRoots.front());
+    }
+
+    return resolveUnderRoot(std::filesystem::current_path() / "packages");
 }
 
 void collectInlineTemplatesFromExpr(const Expr& expr, std::vector<std::string>& sources);
@@ -221,6 +234,7 @@ std::vector<std::string> deduplicateSources(std::vector<std::string> sources) {
 RuntimeSession::RuntimeSession(std::istream& input, std::ostream& output, bool debugAst)
     : debugAst_(debugAst), interpreter_(output, input) {
     interpreter_.setImportLoader([this](const std::string& path, const SourceSpan& span) { importFile(path, span); });
+    addPackageRoot(std::filesystem::current_path() / "packages");
 }
 
 void RuntimeSession::setDebugAst(bool enabled) {
@@ -237,6 +251,15 @@ void RuntimeSession::setCurrentRequest(Value request) {
 
 void RuntimeSession::clearCurrentRequest() {
     interpreter_.clearCurrentRequest();
+}
+
+void RuntimeSession::addPackageRoot(const std::filesystem::path& path) {
+    const auto normalized = normalizePath(path);
+    const auto alreadyPresent =
+        std::find(packageRoots_.begin(), packageRoots_.end(), normalized) != packageRoots_.end();
+    if (!alreadyPresent) {
+        packageRoots_.push_back(normalized);
+    }
 }
 
 std::shared_ptr<Program> RuntimeSession::parseProgram(std::string_view sourceName, const std::string& source) {
@@ -312,6 +335,7 @@ void RuntimeSession::runCachedSource(const std::string& sourceName) {
 void RuntimeSession::shareParsedSourcesWith(RuntimeSession& target) const {
     target.sourceCache_ = sourceCache_;
     target.parsedPrograms_ = parsedPrograms_;
+    target.packageRoots_ = packageRoots_;
 }
 
 std::unique_ptr<RuntimeSession> RuntimeSession::cloneSnapshot() const {
@@ -320,6 +344,7 @@ std::unique_ptr<RuntimeSession> RuntimeSession::cloneSnapshot() const {
     snapshot->sourceCache_ = sourceCache_;
     snapshot->parsedPrograms_ = parsedPrograms_;
     snapshot->programs_ = programs_;
+    snapshot->packageRoots_ = packageRoots_;
     snapshot->importedFiles_ = importedFiles_;
     interpreter_.copySnapshotTo(snapshot->interpreter_);
     return snapshot;
@@ -364,7 +389,7 @@ void RuntimeSession::importFile(const std::string& path, const SourceSpan& span)
     std::filesystem::path resolvedPath(path);
 
     if (!path.empty() && path.front() == '@') {
-        resolvedPath = resolvePackageImportPath(path);
+        resolvedPath = resolvePackageImportPath(path, packageRoots_);
     } else if (resolvedPath.is_relative()) {
         if (!sourceStack_.empty()) {
             resolvedPath = std::filesystem::path(sourceStack_.back()).parent_path() / resolvedPath;

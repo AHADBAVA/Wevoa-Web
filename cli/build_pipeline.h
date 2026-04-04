@@ -16,6 +16,7 @@ struct BuildResult {
     std::vector<std::string> routes;
     std::vector<std::string> views;
     std::vector<std::string> assets;
+    std::vector<std::string> packages;
 };
 
 class BuildPipeline {
@@ -27,6 +28,7 @@ class BuildPipeline {
   private:
     void copyDirectoryContents(const std::filesystem::path& source, const std::filesystem::path& target) const;
     std::vector<std::string> enumeratePublicAssets(const std::filesystem::path& directory) const;
+    std::vector<std::string> enumeratePackageDirectories(const std::filesystem::path& directory) const;
 
     FileWriter writer_;
 };

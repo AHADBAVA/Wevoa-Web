@@ -503,6 +503,8 @@ WebApplication::WebApplication(std::string scriptsDirectory,
         [this](Interpreter& interpreter, const std::string& source, const SourceSpan&) {
             return templateEngine_.renderInline(source, interpreter);
         });
+    const auto projectRoot = std::filesystem::path(scriptsDirectory_).parent_path();
+    session_.addPackageRoot(projectRoot / "packages");
     session_.defineGlobal("config", config_, true);
 
     const auto ttlSeconds = std::max<std::int64_t>(1, sessionTimeToLiveSeconds());

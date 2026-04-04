@@ -41,6 +41,14 @@ struct InstallCommandOptions {
     bool globalMode = false;
 };
 
+struct ListCommandOptions {
+    bool core = false;
+};
+
+struct SearchCommandOptions {
+    std::string query;
+};
+
 class CLIHandler {
   public:
     enum class CommandType {
@@ -51,6 +59,9 @@ class CLIHandler {
         Migrate,
         MakeMigration,
         Install,
+        RemovePackage,
+        ListPackages,
+        SearchPackages,
         Doctor,
         Info,
         Version,
@@ -67,6 +78,8 @@ class CLIHandler {
         std::string migrationName;
         std::string packageName;
         InstallCommandOptions installOptions {};
+        ListCommandOptions listOptions {};
+        SearchCommandOptions searchOptions {};
     };
 
     Command parse(int argc, char** argv) const;

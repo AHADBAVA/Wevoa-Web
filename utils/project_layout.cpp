@@ -25,6 +25,7 @@ SourceProjectLayout detectSourceProjectLayout(const std::filesystem::path& root,
         root / appDirectory,
         root / viewsDirectory,
         root / publicDirectory,
+        root / "packages",
     };
 
     ensureDirectoryExists(layout.appDirectory, "app");
@@ -40,6 +41,7 @@ BuiltProjectLayout detectBuiltProjectLayout(const std::filesystem::path& root, c
         root / buildDirectory / "app",
         root / buildDirectory / "views",
         root / buildDirectory / "public",
+        root / buildDirectory / "packages",
         root / buildDirectory / "wevoa.build.json",
     };
 

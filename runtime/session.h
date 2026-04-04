@@ -26,6 +26,7 @@ class RuntimeSession {
     void defineGlobal(std::string name, Value value, bool isConstant = true);
     void setCurrentRequest(Value request);
     void clearCurrentRequest();
+    void addPackageRoot(const std::filesystem::path& path);
     void runSource(const std::string& sourceName, const std::string& source);
     void runCachedSource(const std::string& sourceName);
     void shareParsedSourcesWith(RuntimeSession& target) const;
@@ -47,6 +48,7 @@ class RuntimeSession {
     bool debugAst_ = false;
     Interpreter interpreter_;
     std::vector<std::shared_ptr<Program>> programs_;
+    std::vector<std::filesystem::path> packageRoots_;
     std::unordered_set<std::string> importedFiles_;
     std::vector<std::string> sourceStack_;
     std::unordered_map<std::string, std::string> sourceCache_;

@@ -57,6 +57,7 @@ int main(int argc, char** argv) {
                 logger.build("Routes: " + std::to_string(result.routes.size()));
                 logger.build("Views: " + std::to_string(result.views.size()));
                 logger.build("Assets: " + std::to_string(result.assets.size()));
+                logger.build("Packages: " + std::to_string(result.packages.size()));
                 logger.build("Snapshot: " + (result.outputRoot / "wevoa.snapshot.json").string());
                 logger.build("Templates: " + (result.outputRoot / "wevoa.templates.json").string());
                 return 0;
@@ -85,13 +86,84 @@ int main(int argc, char** argv) {
 
             case wevoaweb::CLIHandler::CommandType::Install: {
                 wevoaweb::PackageManager manager;
-                const auto result = manager.install(command.packageName);
+                logger.wevoa("Installing " + command.packageName + "...");
+                const auto result = manager.install(command.packageName, command.installOptions.globalMode);
                 logger.success("Package installed");
                 logger.info("Name: " + result.packageName);
+                logger.info("Version: " + result.version);
                 logger.info("Path: " + result.destination.string());
+                logger.info("Cache: " + result.cachePath.string());
+                if (result.installedFromCore) {
+                    logger.info("Source: official core package");
+                }
+                for (const auto& dependency : result.installedDependencies) {
+                    logger.build("Dependency: " + dependency);
+                }
+                for (const auto& warning : result.warnings) {
+                    logger.warn(warning);
+                }
                 if (result.createdPlaceholder) {
                     logger.watch("Installed a local placeholder package. Replace packages/" + result.packageName +
                                  "/main.wev with real package code.");
+                }
+                return 0;
+            }
+
+            case wevoaweb::CLIHandler::CommandType::RemovePackage: {
+                wevoaweb::PackageManager manager;
+                const auto result = manager.remove(command.packageName);
+                logger.success("Package removed");
+                logger.info("Name: " + result.packageName);
+                logger.info("Path: " + result.destination.string());
+                return 0;
+            }
+
+            case wevoaweb::CLIHandler::CommandType::ListPackages: {
+                wevoaweb::PackageManager manager;
+                const auto packages =
+                    command.listOptions.core ? manager.listAvailableCore() : manager.listInstalled();
+                if (packages.empty()) {
+                    logger.info(command.listOptions.core ? "No core packages are registered."
+                                                         : "No packages are installed in this project.");
+                    return 0;
+                }
+
+                logger.info(command.listOptions.core ? "Available core packages:" : "Installed packages:");
+                for (const auto& package : packages) {
+                    std::string line = package.packageName + "@" + package.version;
+                    if (!package.source.empty()) {
+                        line += " [" + package.source + "]";
+                    }
+                    if (package.isOfficial) {
+                        line += " [official]";
+                    }
+                    if (!package.description.empty()) {
+                        line += " - " + package.description;
+                    }
+                    logger.info(line);
+                }
+                return 0;
+            }
+
+            case wevoaweb::CLIHandler::CommandType::SearchPackages: {
+                wevoaweb::PackageManager manager;
+                logger.wevoa("Searching registry for \"" + command.searchOptions.query + "\"...");
+                const auto packages = manager.search(command.searchOptions.query);
+                if (packages.empty()) {
+                    logger.info("No packages matched \"" + command.searchOptions.query + "\".");
+                    return 0;
+                }
+
+                logger.info("Search results:");
+                for (const auto& package : packages) {
+                    std::string line = package.packageName + "@" + package.version;
+                    if (package.isOfficial) {
+                        line += " [official]";
+                    }
+                    if (!package.description.empty()) {
+                        line += " - " + package.description;
+                    }
+                    logger.info(line);
                 }
                 return 0;
             }
@@ -111,6 +183,39 @@ int main(int argc, char** argv) {
             }
 
             case wevoaweb::CLIHandler::CommandType::Info: {
+                if (!command.packageName.empty()) {
+                    wevoaweb::PackageManager manager;
+                    const auto info = manager.packageInfo(command.packageName);
+                    logger.info("Package: " + info.packageName);
+                    logger.info("Version: " + info.version);
+                    if (!info.source.empty()) {
+                        logger.info("Source: " + info.source);
+                    }
+                    if (info.isOfficial) {
+                        logger.info("Trust: official");
+                    }
+                    if (!info.repo.empty()) {
+                        logger.info("Repository: " + info.repo);
+                    }
+                    if (!info.description.empty()) {
+                        logger.info("Description: " + info.description);
+                    }
+                    if (!info.usageSnippet.empty()) {
+                        logger.info("Usage:");
+                        std::cout << info.usageSnippet << '\n';
+                    }
+                    if (!info.dependencies.empty()) {
+                        logger.info("Dependencies: " + std::to_string(info.dependencies.size()));
+                        for (const auto& dependency : info.dependencies) {
+                            logger.build(dependency);
+                        }
+                    }
+                    if (!info.path.empty()) {
+                        logger.info("Path: " + info.path.string());
+                    }
+                    return 0;
+                }
+
                 wevoaweb::ProjectInspector inspector;
                 const auto info = inspector.inspectCurrentProject(command.inspectOptions.appDirectory,
                                                                   command.inspectOptions.viewsDirectory,

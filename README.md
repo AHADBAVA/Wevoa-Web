@@ -38,6 +38,8 @@ WevoaWeb Runtime 786.0.0
 - Dynamic route parameters, middleware, and cookie-backed sessions
 - Template control flow with `{% if %}`, `{% for %}`, and reusable components
 - Password hashing, CSRF helpers, SQL migrations, and local package installation
+- Built-in core packages (`auth`, `db`, `utils`) with `wevoa install`, `wevoa remove`, and `wevoa list`
+- Registry-backed package discovery with `wevoa search` and `wevoa info <package>`
 - Clean starter UI, docs page, and example form for new projects
 
 ## Quick Start
@@ -48,6 +50,8 @@ Installed runtime flow:
 wevoa --version
 wevoa create app
 cd app
+wevoa search auth
+wevoa install auth
 wevoa start
 ```
 
@@ -56,6 +60,8 @@ What each step does:
 - `wevoa --version` confirms the runtime is installed globally
 - `wevoa create app` creates a starter project
 - `cd app` moves into the generated project
+- `wevoa search auth` discovers the official auth package from the registry cache
+- `wevoa install auth` installs the first core package into `packages/`
 - `wevoa start` launches the development server
 
 Source build flow:
@@ -177,6 +183,8 @@ Current language features:
 - cookie-backed sessions through `session.get()`, `session.set()`, and `session.delete()`
 - native SQLite access through `sqlite.open()`, `db.exec()`, `db.query()`, and `db.scalar()`
 - `wevoa migrate`, `wevoa make:migration`, and `wevoa install`
+- `wevoa remove` and `wevoa list` for package lifecycle management
+- `wevoa search` and `wevoa info <package>` for discovery and package docs
 - source-aware lexer, parser, template, and runtime diagnostics
 
 ## Runtime Flow
@@ -194,6 +202,7 @@ Current language features:
 - `watcher/` for development reload support
 - `examples/` for language samples and smoke-test scripts
 - framework docs and developer references
+- official example apps in `examples/auth-demo`, `examples/dashboard-demo`, and `examples/blog-demo`
 
 ## Installation
 
@@ -235,6 +244,7 @@ GUI installation on Windows:
 
 ## Documentation
 
+- [Framework Overview](docs/framework-overview.md)
 - [Quick Start](docs/quickstart.md)
 - [Language Reference](docs/language-reference.md)
 - [Architecture](docs/architecture.md)

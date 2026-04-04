@@ -522,17 +522,47 @@ The lexer, parser, template renderer, and interpreter attach source spans to err
 
 ## Package Installation
 
+Search the registry cache for packages:
+
+```text
+wevoa search auth
+```
+
+Show package details and usage:
+
+```text
+wevoa info auth
+```
+
+Install an official package:
+
+```text
+wevoa install auth
+```
+
 Install a local package into `packages/`:
 
 ```text
 wevoa install ../shared-package
 ```
 
+You can also remove and inspect installed packages:
+
+```text
+wevoa list
+wevoa remove auth
+```
+
 If the source does not exist yet, WevoaWeb creates a local placeholder package scaffold.
+
+Official core packages currently include:
+
+- `@auth`
+- `@db`
+- `@utils`
 
 ## Not Yet Supported
 
 - floating-point numbers
 - user-defined classes
-- network package registry installs
 - bytecode or JIT execution

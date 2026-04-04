@@ -75,6 +75,11 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
                 applyProjectOption(command.inspectOptions, argument, argv[++index]);
             } else if (argument == "--global") {
                 command.inspectOptions.globalMode = true;
+            } else if (!argument.empty() && argument.front() != '-') {
+                if (!command.packageName.empty()) {
+                    throw CLIUsageError("info accepts at most one package name.");
+                }
+                command.packageName = argument;
             } else {
                 throw CLIUsageError("Unknown option for info: " + argument);
             }
@@ -161,6 +166,39 @@ CLIHandler::Command CLIHandler::parse(int argc, char** argv) const {
         return command;
     }
 
+    if (subcommand == "remove") {
+        if (argc != 3) {
+            throw CLIUsageError("remove requires exactly one package name.");
+        }
+
+        command.type = CommandType::RemovePackage;
+        command.packageName = argv[2];
+        return command;
+    }
+
+    if (subcommand == "list") {
+        command.type = CommandType::ListPackages;
+        for (int index = 2; index < argc; ++index) {
+            const std::string argument = argv[index];
+            if (argument == "--core") {
+                command.listOptions.core = true;
+            } else {
+                throw CLIUsageError("Unknown option for list: " + argument);
+            }
+        }
+        return command;
+    }
+
+    if (subcommand == "search") {
+        if (argc != 3) {
+            throw CLIUsageError("search requires exactly one query.");
+        }
+
+        command.type = CommandType::SearchPackages;
+        command.searchOptions.query = argv[2];
+        return command;
+    }
+
     if (subcommand == "serve") {
         command.type = CommandType::Serve;
         for (int index = 2; index < argc; ++index) {
@@ -241,8 +279,11 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "  " << executableName << " migrate\n";
     std::cout << "  " << executableName << " make:migration <name>\n";
     std::cout << "  " << executableName << " install <package-or-path>\n";
+    std::cout << "  " << executableName << " remove <package>\n";
+    std::cout << "  " << executableName << " list [--core]\n";
+    std::cout << "  " << executableName << " search <query>\n";
     std::cout << "  " << executableName << " doctor\n";
-    std::cout << "  " << executableName << " info\n";
+    std::cout << "  " << executableName << " info [package]\n";
     std::cout << "  " << executableName << " --version\n";
     std::cout << "  " << executableName << " help\n";
     std::cout << '\n';
@@ -253,9 +294,12 @@ void CLIHandler::printHelp(const std::string& executableName) const {
     std::cout << "  serve        Run the built app from the production output folder\n";
     std::cout << "  migrate      Apply pending SQL migrations in the current project\n";
     std::cout << "  make:migration Create a new SQL migration stub in the current project\n";
-    std::cout << "  install      Install a local package into packages/\n";
+    std::cout << "  install      Install a local or core package into packages/\n";
+    std::cout << "  remove       Remove an installed package from packages/\n";
+    std::cout << "  list         List installed packages or available core packages\n";
+    std::cout << "  search       Search the package registry cache and official index\n";
     std::cout << "  doctor       Validate the current project structure and runtime readiness\n";
-    std::cout << "  info         Show details about the current project and runtime\n";
+    std::cout << "  info         Show project info or package details when a package name is provided\n";
     std::cout << "  --version    Print the installed WevoaWeb runtime version\n";
     std::cout << "  help         Show this help message\n";
     std::cout << '\n';

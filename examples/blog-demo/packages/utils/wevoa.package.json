@@ -1,0 +1,10 @@
+{
+  "dependencies": {},
+  "isOfficial": true,
+  "description": "Common response and text helpers for WevoaWeb apps.",
+  "version": "1.0.0",
+  "usage": "import \"@utils\"\n\nreturn utils_success(\"Ready\")",
+  "repo": "https://github.com/wevoa/packages-utils",
+  "source": "core",
+  "name": "utils"
+}

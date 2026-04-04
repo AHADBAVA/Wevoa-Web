@@ -11,6 +11,7 @@ struct SourceProjectLayout {
     std::filesystem::path appDirectory;
     std::filesystem::path viewsDirectory;
     std::filesystem::path publicDirectory;
+    std::filesystem::path packagesDirectory;
 };
 
 struct BuiltProjectLayout {
@@ -20,6 +21,7 @@ struct BuiltProjectLayout {
     std::filesystem::path appDirectory;
     std::filesystem::path viewsDirectory;
     std::filesystem::path publicDirectory;
+    std::filesystem::path packagesDirectory;
     std::filesystem::path manifestFile;
 };
 

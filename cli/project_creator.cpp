@@ -157,8 +157,9 @@ std::string ProjectCreator::mainTemplate(const std::string& displayName) {
            "  { title: \"Getting Started\", body: \"Open app/main.wev to define routes and views/index.wev to shape your first screen.\" },\n"
            "  { title: \"Routing\", body: \"Use route \\\"/path\\\" { ... } for GET or route \\\"/path\\\" method POST { ... }.\" },\n"
            "  { title: \"Templates\", body: \"Render templates with view(), add {{ values }}, {% if %}, {% for %}, extend, section, and include.\" },\n"
+           "  { title: \"Packages\", body: \"Install core helpers with wevoa install auth, wevoa install db, or wevoa install utils and import them with @name.\" },\n"
            "  { title: \"Database\", body: \"Open SQLite with sqlite.open() and read rows back as arrays of objects.\" },\n"
-           "  { title: \"CLI\", body: \"Use wevoa start for dev mode, wevoa build for production output, and wevoa serve to run the build.\" }\n"
+           "  { title: \"CLI\", body: \"Use wevoa start for dev mode, wevoa build for production output, wevoa serve for prod, and wevoa list to inspect packages.\" }\n"
            "]\n"
            "\n"
            "route \"/\" {\n"
@@ -686,6 +687,13 @@ std::string ProjectCreator::readmeTemplate(const std::string& displayName) {
            "```powershell\n"
            "wevoa make:migration create_users\n"
            "wevoa migrate\n"
+           "```\n\n"
+           "## Packages\n\n"
+           "```powershell\n"
+           "wevoa list --core\n"
+           "wevoa install auth\n"
+           "wevoa install db\n"
+           "wevoa list\n"
            "```\n";
 }
 

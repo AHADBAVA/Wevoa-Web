@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>{{ title }}</title>
+  <style>
+    body { font-family: Segoe UI, Arial, sans-serif; margin: 0; background: #f6fbf7; color: #0f172a; }
+    main { width: min(960px, calc(100% - 32px)); margin: 48px auto; padding: 32px; background: #fff; border: 1px solid rgba(15,23,42,0.12); }
+    .grid { display: grid; gap: 16px; grid-template-columns: repeat(2, minmax(0,1fr)); }
+    .box { border: 1px solid rgba(15,23,42,0.12); padding: 16px; }
+    input { width: 100%; padding: 10px 12px; margin-top: 8px; margin-bottom: 12px; border: 1px solid rgba(15,23,42,0.2); }
+    button, a.button { display: inline-block; padding: 10px 14px; border: 1px solid rgba(34,197,94,0.35); background: rgba(34,197,94,0.16); color: #0f172a; text-decoration: none; }
+    .error { color: #b91c1c; margin-top: 12px; }
+  </style>
+</head>
+<body>
+  <main>
+    {{ content }}
+  </main>
+</body>
+</html>

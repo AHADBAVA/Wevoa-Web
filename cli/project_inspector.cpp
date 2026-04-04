@@ -41,6 +41,30 @@ std::size_t countFiles(const std::filesystem::path& directory, const std::string
     return count;
 }
 
+std::size_t countPackageDirectories(const std::filesystem::path& directory) {
+    namespace fs = std::filesystem;
+
+    std::size_t count = 0;
+    std::error_code error;
+    if (!fs::exists(directory, error) || !fs::is_directory(directory, error) || error) {
+        return 0;
+    }
+
+    for (fs::directory_iterator iterator(directory, fs::directory_options::skip_permission_denied, error), end;
+         iterator != end;
+         iterator.increment(error)) {
+        if (error) {
+            throw std::runtime_error("Unable to inspect packages in: " + directory.string());
+        }
+
+        if (iterator->is_directory(error) && !error) {
+            ++count;
+        }
+    }
+
+    return count;
+}
+
 }  // namespace
 
 ProjectInfo ProjectInspector::inspectCurrentProject(const std::string& appDirectory,
@@ -69,7 +93,7 @@ ProjectInfo ProjectInspector::inspectCurrentProject(const std::string& appDirect
 
     info.viewCount = countFiles(layout.viewsDirectory, ".wev");
     info.assetCount = countFiles(layout.publicDirectory);
-    info.packageCount = countFiles(layout.root / "packages", ".wev");
+    info.packageCount = countPackageDirectories(layout.packagesDirectory);
     info.migrationCount = countFiles(layout.root / "migrations", ".sql");
 
     std::istringstream input;
@@ -112,11 +136,11 @@ DoctorReport ProjectInspector::doctorCurrentProject(const std::string& appDirect
         report.checks.push_back("Config file parsed successfully");
     }
 
-    const auto packagesDirectory = layout.root / "packages";
+    const auto packagesDirectory = layout.packagesDirectory;
     if (!std::filesystem::exists(packagesDirectory, error) || error) {
         report.warnings.push_back("Packages directory is missing: " + packagesDirectory.string());
     } else {
-        report.checks.push_back("Packages detected: " + std::to_string(countFiles(packagesDirectory, ".wev")));
+        report.checks.push_back("Packages detected: " + std::to_string(countPackageDirectories(packagesDirectory)));
     }
 
     const auto migrationsDirectory = layout.root / "migrations";

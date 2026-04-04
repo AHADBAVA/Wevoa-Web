@@ -48,10 +48,12 @@ BuildResult BuildPipeline::build(const BuildCommandOptions& options, std::istrea
     writer_.createDirectory(outputRoot / "app");
     writer_.createDirectory(outputRoot / "views");
     writer_.createDirectory(outputRoot / "public");
+    writer_.createDirectory(outputRoot / "packages");
 
     copyDirectoryContents(sourceLayout.appDirectory, outputRoot / "app");
     copyDirectoryContents(sourceLayout.viewsDirectory, outputRoot / "views");
     copyDirectoryContents(sourceLayout.publicDirectory, outputRoot / "public");
+    copyDirectoryContents(sourceLayout.packagesDirectory, outputRoot / "packages");
 
     Value config = withProductionEnvironment(loadConfigFile(sourceLayout.configFile));
     writer_.writeTextFile(outputRoot / "wevoa.config.json", serializeJson(config));
@@ -71,6 +73,7 @@ BuildResult BuildPipeline::build(const BuildCommandOptions& options, std::istrea
     result.routes = application.routePaths();
     result.views = application.viewPaths();
     result.assets = enumeratePublicAssets(outputRoot / "public");
+    result.packages = enumeratePackageDirectories(outputRoot / "packages");
 
     Value::Array routeValues;
     routeValues.reserve(result.routes.size());
@@ -90,6 +93,12 @@ BuildResult BuildPipeline::build(const BuildCommandOptions& options, std::istrea
         viewValues.emplace_back(view);
     }
 
+    Value::Array packageValues;
+    packageValues.reserve(result.packages.size());
+    for (const auto& package : result.packages) {
+        packageValues.emplace_back(package);
+    }
+
     Value::Object manifest;
     manifest.insert_or_assign("runtime", Value(kWevoaRuntimeName));
     manifest.insert_or_assign("version", Value(kWevoaVersion));
@@ -98,6 +107,7 @@ BuildResult BuildPipeline::build(const BuildCommandOptions& options, std::istrea
     manifest.insert_or_assign("routes", Value(std::move(routeValues)));
     manifest.insert_or_assign("views", Value(std::move(viewValues)));
     manifest.insert_or_assign("assets", Value(std::move(assetValues)));
+    manifest.insert_or_assign("packages", Value(std::move(packageValues)));
 
     writer_.writeTextFile(outputRoot / "wevoa.build.json", serializeJson(Value(std::move(manifest))));
     writer_.writeTextFile(outputRoot / "wevoa.templates.json",
@@ -173,6 +183,31 @@ std::vector<std::string> BuildPipeline::enumeratePublicAssets(const std::filesys
 
     std::sort(assets.begin(), assets.end());
     return assets;
+}
+
+std::vector<std::string> BuildPipeline::enumeratePackageDirectories(const std::filesystem::path& directory) const {
+    namespace fs = std::filesystem;
+
+    std::vector<std::string> packages;
+    std::error_code error;
+    if (!fs::exists(directory, error) || !fs::is_directory(directory, error) || error) {
+        return packages;
+    }
+
+    for (fs::directory_iterator iterator(directory, fs::directory_options::skip_permission_denied, error), end;
+         iterator != end;
+         iterator.increment(error)) {
+        if (error) {
+            throw std::runtime_error("Unable to enumerate built packages in: " + directory.string());
+        }
+
+        if (iterator->is_directory(error) && !error) {
+            packages.push_back(iterator->path().filename().string());
+        }
+    }
+
+    std::sort(packages.begin(), packages.end());
+    return packages;
 }
 
 }  // namespace wevoaweb
