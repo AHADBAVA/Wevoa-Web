@@ -1,96 +1,40 @@
 <p align="center">
-  <img src="assets/repo-banner.svg" alt="WevoaWeb banner" width="100%" />
+  <img src="assets/WevoaWebLogo.png" alt="WevoaWeb logo" width="180" />
+</p>
+
+<h1 align="center">WevoaWeb</h1>
+
+<p align="center">
+  An original server-first scripting language, runtime, and HTML-first web framework built in modern C++17.
 </p>
 
 <p align="center">
   <img src="https://img.shields.io/badge/c%2B%2B-17-0f172a" alt="C++17" />
-  <img src="https://img.shields.io/badge/status-experimental-1b8a52" alt="Experimental" />
+  <img src="https://img.shields.io/badge/runtime-786.0.0-1b8a52" alt="Runtime 786.0.0" />
+  <img src="https://img.shields.io/badge/model-HTML--first-14532d" alt="HTML first" />
+  <img src="https://img.shields.io/badge/platform-single%20binary-166534" alt="Single binary" />
 </p>
 
-<p align="center">
-  An original server-side scripting language and HTML-first web engine built in modern C++17.
-</p>
+WevoaWeb combines a custom language, interpreter, template engine, HTTP server, package system, starter packs, and CLI into one installable platform. It is designed for developers who want a simpler server-rendered stack with fewer moving parts and no JavaScript dependency for the normal request flow.
 
-WevoaWeb combines a small programming language, a tree-walk interpreter, a built-in HTTP dev server, and a CLI for creating and running server-rendered apps. The browser receives plain HTML and static assets only.
+## Why WevoaWeb
 
-## Recommended Install
-
-For normal Windows users, the recommended distribution path is the GUI installer:
-
-- `dist\installer\WevoaSetup.exe`
-
-That installs the runtime globally, adds it to `PATH`, and makes `wevoa` available from any new terminal.
-
-Expected version output:
-
-```text
-WevoaWeb Runtime 786.0.0
-```
-
-## Why It Stands Out
-
-- Original implementation from lexer to server runtime
-- HTML-first web model with native `route` declarations
-- Lightweight codebase that is easy to read and extend
-- Modern C++17 architecture with clear language layers
-- Built-in developer workflow with `wevoa start` and `wevoa create`
-- Response helpers with `json()`, `redirect()`, and `status()`
-- Dynamic route parameters, middleware, and cookie-backed sessions
-- Template control flow with `{% if %}`, `{% for %}`, and reusable components
-- Password hashing, CSRF helpers, SQL migrations, and local package installation
-- Built-in core packages (`auth`, `db`, `utils`) with `wevoa install`, `wevoa remove`, and `wevoa list`
-- Registry-backed package discovery with `wevoa search` and `wevoa info <package>`
+- One runtime for language, routing, templates, build, serve, and project scaffolding
+- Server-first HTML model with layouts, includes, components, and template control flow
+- Clean request lifecycle with sessions, CSRF, middleware, JSON helpers, and SQLite support
+- Package ecosystem with official core packages: `@auth`, `@db`, and `@utils`
 - Two official starter packs: `app` and `dashboard`
+- Single-binary distribution path with Windows installer support
 
 ## Quick Start
 
-Installed runtime flow:
+If the runtime is already installed globally:
 
 ```text
 wevoa --version
 wevoa create dashboard app
 cd app
-wevoa search auth
 wevoa start
-```
-
-What each step does:
-
-- `wevoa --version` confirms the runtime is installed globally
-- `wevoa create dashboard app` creates a dashboard starter project
-- `cd app` moves into the generated project
-- `wevoa search auth` discovers the official auth package from the registry cache
-- `wevoa start` launches the development server
-
-Source build flow:
-
-Build:
-
-```powershell
-g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
-    cli/cli_handler.cpp `
-    cli/build_pipeline.cpp `
-    cli/migration_manager.cpp `
-    cli/package_manager.cpp `
-    cli/project_inspector.cpp `
-    cli/project_creator.cpp `
-    lexer/lexer.cpp parser/parser.cpp ast/ast.cpp `
-    interpreter/value.cpp interpreter/environment.cpp `
-    interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
-    runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
-    runtime/template_engine.cpp runtime/config_loader.cpp runtime/sqlite_module.cpp `
-    server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp server/serve_server.cpp server/session_store.cpp `
-    watcher/file_watcher.cpp `
-    utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp utils/project_layout.cpp utils/browser_launcher.cpp utils/security.cpp `
-    -o wevoa.exe -lws2_32 -lsqlite3
-```
-
-Create and run an app:
-
-```powershell
-.\wevoa.exe create my-app
-cd .\my-app
-..\wevoa.exe start
 ```
 
 Open:
@@ -99,123 +43,31 @@ Open:
 http://localhost:786
 ```
 
-Build and serve a production bundle:
+What each step does:
 
-```powershell
-..\wevoa.exe build
-..\wevoa.exe serve
-```
+- `wevoa --version` confirms the runtime is installed and available on `PATH`
+- `wevoa create dashboard app` generates the official dashboard starter
+- `cd app` moves into the generated project folder
+- `wevoa start` launches the development server
 
-Check the runtime version:
+## Install
 
-```powershell
-.\wevoa.exe --version
-```
+### Windows: recommended
 
-Versioning is centralized in [utils/version.h](/d:/Wevoaweb_Language/utils/version.h), so the runtime, build artifacts, and installer all read from one source of truth.
+The recommended Windows distribution path is the GUI installer:
 
-Inspect the current project:
+- `dist\installer\WevoaSetup.exe`
 
-```powershell
-..\wevoa.exe doctor
-..\wevoa.exe info --global
-```
+That installs the runtime globally, adds it to `PATH`, and makes `wevoa` available from any new terminal.
 
-## Release Builds
-
-Windows:
-
-```powershell
-.\scripts\build-release.ps1
-```
-
-Windows installer:
-
-```powershell
-.\scripts\build-installer.ps1
-```
-
-Linux:
-
-```bash
-./scripts/build-release.sh
-```
-
-Optional static-runtime attempt:
-
-- PowerShell: `.\scripts\build-release.ps1 -StaticRuntime`
-- Bash: `STATIC_RUNTIME=1 ./scripts/build-release.sh`
-
-These produce release binaries under `dist/`.
-The Windows installer script produces `dist\installer\WevoaSetup.exe` when Inno Setup is installed.
-
-## Language Snapshot
-
-```text
-const site = {
-  framework_name: "WevoaWeb"
-}
-
-route "/" {
-return view("index.wev", {
-  title: "Home",
-  site: site
-})
-}
-```
-
-Current language features:
-
-- `let` and `const`
-- integers, strings, booleans, arrays, objects, and `nil`
-- arithmetic, comparisons, `&&`, `||`, indexing, and property access
-- blocks, `if / else`, `loop`, `while`, `break`, and `continue`
-- functions, `return`, lexical closures, and `import`
-- built-in `print()`, `input()`, `view()`, `len()`, and `append()`
-- security helpers `hash()`, `verify()`, and `verify_csrf()`
-- response helpers `json()`, `redirect()`, and `status()`
-- `html { ... }` inline templates and `.wev` file views with `{{ expression }}`
-- template control flow with `{% if %}`, `{% else %}`, `{% for %}`, `{% end %}`, `include`, and self-closing components
-- `route` declarations with `GET`, `POST`, `PUT`, `PATCH`, `DELETE`, middleware, and dynamic segments like `:id`
-- request helpers `request.method()`, `request.query()`, `request.form()`, `request.json()`, and `request.csrf()`
-- cookie-backed sessions through `session.get()`, `session.set()`, and `session.delete()`
-- native SQLite access through `sqlite.open()`, `db.exec()`, `db.query()`, and `db.scalar()`
-- `wevoa migrate`, `wevoa make:migration`, and `wevoa install`
-- `wevoa remove` and `wevoa list` for package lifecycle management
-- `wevoa search` and `wevoa info <package>` for discovery and package docs
-- source-aware lexer, parser, template, and runtime diagnostics
-
-## Runtime Flow
-
-<p align="center">
-  <img src="assets/runtime-flow.svg" alt="WevoaWeb runtime flow" width="92%" />
-</p>
-
-## What You Get In This Repo
-
-- `lexer/`, `parser/`, `ast/`, `interpreter/`, and `runtime/`
-- `server/` for route loading, HTTP handling, and static assets
-- `cli/` for `start`, `create`, `build`, `serve`, package commands, and `version`
-- `scripts/` for release builds and installation helpers
-- `templates/` for the official `app` and `dashboard` starter packs
-- `watcher/` for development reload support
-- `examples/` for language samples and smoke-test scripts
-- framework docs and developer references
-
-## Installation
-
-Windows:
+### Windows: build from source
 
 ```powershell
 .\scripts\build-release.ps1
 .\scripts\install-wevoa.ps1
 ```
 
-Default install target:
-
-- `%USERPROFILE%\bin\wevoa.exe`
-
-Linux:
+### Linux: build from source
 
 ```bash
 ./scripts/build-release.sh
@@ -224,70 +76,191 @@ Linux:
 
 Default install targets:
 
-- `/usr/local/bin/wevoa` when writable
-- otherwise `$HOME/.local/bin/wevoa`
+- Windows: `%USERPROFILE%\bin\wevoa.exe`
+- Linux: `/usr/local/bin/wevoa` when writable, otherwise `$HOME/.local/bin/wevoa`
 
-After installation:
+## Starter Packs
+
+WevoaWeb now ships with two official built-in starters.
+
+### `app`
+
+The default starter for a clean minimal project:
 
 ```text
-wevoa --version
 wevoa create my-app
+```
+
+Includes:
+
+- one route
+- one layout
+- one view
+- basic config
+- minimal UI
+
+### `dashboard`
+
+A more complete real-world starter:
+
+```text
 wevoa create dashboard admin-panel
 ```
 
-GUI installation on Windows:
+Includes:
 
-- Install Inno Setup
-- Run `.\scripts\build-installer.ps1`
-- Launch `dist\installer\WevoaSetup.exe`
+- account creation and sign-in flow
+- protected dashboard route
+- task CRUD example
+- package-backed auth and database helpers
+- polished server-rendered UI
+
+## What the Platform Already Supports
+
+### Language
+
+- `let`, `const`, `func`, `route`, `component`, `import`
+- integers, strings, booleans, arrays, objects, and `nil`
+- `if / else`, `loop`, `while`, `break`, and `continue`
+- lexical scoping and closures
+- indexing, property access, `&&`, `||`, and normal expression evaluation
+
+### Templates
+
+- file-based `.wev` views
+- `{{ expression }}` interpolation
+- `{% if %}`, `{% else %}`, `{% for %}`, `{% end %}`
+- `extend`, `section`, and `include`
+- reusable components
+- compiled template and fragment caching
+
+### Framework
+
+- `GET`, `POST`, `PUT`, `PATCH`, `DELETE`
+- dynamic route params like `:id`
+- route middleware
+- structured request helpers
+- response helpers with `json()`, `redirect()`, and `status()`
+- cookie-backed sessions and CSRF protection
+- multipart uploads and static file serving
+
+### Data
+
+- built-in SQLite integration
+- migrations with `wevoa migrate`
+- per-worker database strategy with WAL mode
+- official `@db` package helpers
+
+### Platform and CLI
+
+- `wevoa create`
+- `wevoa start`
+- `wevoa build`
+- `wevoa serve`
+- `wevoa doctor`
+- `wevoa info`
+- `wevoa install`, `remove`, `list`, `search`
+- release scripts and installer generation
+
+## Runtime Flow
+
+<p align="center">
+  <img src="assets/runtime-flow.svg" alt="WevoaWeb runtime flow" width="92%" />
+</p>
+
+## Project Structure
+
+Generated projects follow a simple convention:
+
+```text
+app/
+views/
+public/
+migrations/
+packages/
+storage/
+wevoa.config.json
+```
+
+What each part does:
+
+- `app/` contains routes and server-side application logic
+- `views/` contains templates and layouts
+- `public/` contains static assets
+- `migrations/` contains SQL migrations
+- `packages/` contains installed local packages
+- `storage/` contains runtime databases and generated app-local data
+- `wevoa.config.json` controls runtime behavior like port and environment
+
+## Build and Serve
+
+Development mode:
+
+```powershell
+wevoa start
+```
+
+Production bundle:
+
+```powershell
+wevoa build
+wevoa serve
+```
+
+Default runtime port:
+
+- `786`
+
+Override order:
+
+- CLI flag
+- config file
+- built-in default
 
 ## Documentation
 
+- [Quick Start](docs/quickstart.md)
 - [Framework Overview](docs/framework-overview.md)
 - [v786 Platform Snapshot](docs/v786.md)
-- [Quick Start](docs/quickstart.md)
 - [Language Reference](docs/language-reference.md)
 - [Architecture](docs/architecture.md)
 - [Distribution Strategy](docs/distribution-strategy.md)
+- [Internal Platform Reference](docs/internal-platform-reference.md)
 - [Roadmap](ROADMAP.md)
 - [Changelog](CHANGELOG.md)
 
+## Open Source and Community
+
+- [License](LICENSE)
+- [Contributing](CONTRIBUTING.md)
+- [Security Policy](SECURITY.md)
+- [Support](SUPPORT.md)
+- [Open Source Policy](OPEN_SOURCE.md)
+- [Trademark Notice](TRADEMARK.md)
+- [Code of Conduct](CODE_OF_CONDUCT.md)
+
 ## Current Status
 
-WevoaWeb is working and developer-ready, but still intentionally small. The current implementation already supports:
+WevoaWeb is already usable as a compact full-stack platform, especially for:
 
-- an original interpreted language
-- server-side HTML rendering with layouts and interpolation
-- route-based web apps
-- polished starter UI
-- GET and POST request handling
-- arrays, objects, indexing, and imports
-- native SQLite-backed persistence
-- static file serving from `public/`
-- config loading from `wevoa.config.json`
-- file watching and manual reload controls
-- production build output through `wevoa build`
-- built-app serving through `wevoa serve`
-- runtime version reporting with `wevoa --version`
-- release build scripts for Windows and Linux
-- PATH installation helpers for Windows and Linux
-- project scaffolding with clean backend/frontend separation
+- dashboards
+- internal tools
+- admin panels
+- package-backed starter apps
+- HTML-first server-rendered products
 
-The current limitations are:
+It is still intentionally compact. The main current limits are:
 
-- no floating-point numbers yet
-- no classes or methods yet
-- no automatic browser refresh yet
-- no bytecode VM or JIT yet
+- tree-walk interpreter performance versus VM/JIT runtimes
+- SQLite as the primary built-in database backend
+- early-stage package ecosystem compared with very mature platforms
 
-## Roadmap Direction
+## Version
 
-Planned areas of growth include:
+Current runtime version:
 
-- bytecode VM work
-- stronger standard library primitives
-- better templating and route ergonomics
-- config-driven server behavior
-- improved testing and diagnostics
+```text
+WevoaWeb Runtime 786.0.0
+```
 
-See the full plan in [ROADMAP.md](ROADMAP.md).
+Versioning is centralized in [utils/version.h](utils/version.h), so the runtime, build manifests, installer, and docs all align from one source of truth.

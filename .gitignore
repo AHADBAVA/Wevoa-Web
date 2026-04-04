@@ -45,6 +45,7 @@ storage/*.sqlite-wal
 */storage/*.sqlite
 */storage/*.sqlite-shm
 */storage/*.sqlite-wal
+**/storage/*.sqlite
 **/storage/*.sqlite-shm
 **/storage/*.sqlite-wal
 

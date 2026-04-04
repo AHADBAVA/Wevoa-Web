@@ -4,53 +4,55 @@ Thanks for your interest in contributing.
 
 ## Project Goals
 
-WevoaWeb is building an original server-side language and web engine with a small, understandable implementation. Good contributions usually improve one of these areas:
+WevoaWeb is building an original server-side language and web platform with a small, understandable implementation. Good contributions usually improve one of these areas:
 
 - language design
-- runtime correctness
-- parser or interpreter quality
+- parser or interpreter correctness
+- runtime behavior
+- HTTP and template system quality
+- starter templates and developer experience
 - documentation
-- developer tooling
-- tests and examples
+- tests and reproducibility
 
 ## Before You Start
 
-- Read the current README and roadmap.
+- Read the [README](README.md), [Quick Start](docs/quickstart.md), and [Roadmap](ROADMAP.md).
 - Check whether the feature already exists or is already planned.
 - Prefer focused pull requests instead of large unrelated changes.
+- If your change affects syntax, runtime behavior, or starter output, update docs with it.
 
 ## Development Setup
 
-Build on Windows with MinGW:
+Build a release binary on Windows:
 
 ```powershell
-g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp `
-    cli/cli_handler.cpp `
-    cli/project_creator.cpp `
-    lexer/lexer.cpp parser/parser.cpp ast/ast.cpp `
-    interpreter/value.cpp interpreter/environment.cpp `
-    interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp `
-    runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp `
-    server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp `
-    watcher/file_watcher.cpp `
-    utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp `
-    -o wevoa.exe -lws2_32
+.\scripts\build-release.ps1
 ```
 
-Build on Linux or macOS:
+Build a release binary on Linux:
 
 ```bash
-g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
-    cli/cli_handler.cpp \
-    cli/project_creator.cpp \
-    lexer/lexer.cpp parser/parser.cpp ast/ast.cpp \
-    interpreter/value.cpp interpreter/environment.cpp \
-    interpreter/callable.cpp interpreter/interpreter.cpp interpreter/route.cpp \
-    runtime/builtins.cpp runtime/ast_printer.cpp runtime/session.cpp \
-    server/http_types.cpp server/web_app.cpp server/http_server.cpp server/dev_server.cpp \
-    watcher/file_watcher.cpp \
-    utils/logger.cpp utils/keyboard.cpp utils/file_writer.cpp \
-    -o wevoa
+./scripts/build-release.sh
+```
+
+If you want the direct compiler commands, use the current commands in the [README](README.md) or [Quick Start](docs/quickstart.md), since those are kept closer to the active runtime surface.
+
+## Local Verification
+
+Useful verification commands:
+
+```powershell
+.\wevoa.exe --version
+.\wevoa.exe create my-app
+cd .\my-app
+..\wevoa.exe doctor
+..\wevoa.exe start
+```
+
+For the richer starter:
+
+```powershell
+.\wevoa.exe create dashboard admin-panel
 ```
 
 ## Contribution Guidelines
@@ -60,7 +62,8 @@ g++ -std=c++17 -Wall -Wextra -pedantic -I. main.cpp \
 - Avoid introducing heavy dependencies.
 - Preserve the language's original design goals.
 - Update documentation when behavior changes.
-- Add or adjust examples when new syntax or features are introduced.
+- Update starter templates when framework behavior changes affect first-run UX.
+- Do not commit generated databases, WAL files, SHM files, logs, or local runtime output.
 
 ## Pull Requests
 
@@ -72,3 +75,9 @@ Good pull requests usually include:
 - build or test steps used to verify it
 
 If your change is large or changes the language surface area, open an issue or discussion first if possible.
+
+## Security
+
+Do not disclose security-sensitive details in a public issue or PR.
+
+Use the process documented in [SECURITY.md](SECURITY.md).
