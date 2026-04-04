@@ -4,7 +4,7 @@ This document explains the public open-source posture of WevoaWeb.
 
 ## Source Code License
 
-WevoaWeb source code is released under the terms of the [MIT License](LICENSE).
+WevoaWeb source code is released under the terms of the [Apache License 2.0](LICENSE).
 
 That means people may:
 
@@ -14,10 +14,13 @@ That means people may:
 - redistribute the code
 - use the code commercially
 
-Subject to the MIT license requirements:
+That includes the usual Apache-2.0 obligations such as:
 
 - preserve the license text
-- preserve copyright notices
+- preserve required notices
+- mark modified files appropriately when redistributing them
+
+Apache-2.0 also includes an express patent grant from contributors.
 
 ## Community Files
 
@@ -67,6 +70,8 @@ That includes:
 ## Contribution Expectations
 
 By contributing code, documentation, or fixes to WevoaWeb, contributors are expected to submit work they have the right to share under the repository license.
+
+Unless explicitly stated otherwise, contributions submitted for inclusion are expected to be under Apache-2.0, consistent with the repository license.
 
 Contributors should not submit:
 

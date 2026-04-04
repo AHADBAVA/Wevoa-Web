@@ -1,6 +1,6 @@
 # Trademark Notice
 
-This repository's source code is licensed under the [MIT License](LICENSE).
+This repository's source code is licensed under the [Apache License 2.0](LICENSE).
 
 However, the **Wevoa** and **WevoaWeb** names, logos, product identity, and installer branding may be used as project branding and may be reserved by the project owner.
 
