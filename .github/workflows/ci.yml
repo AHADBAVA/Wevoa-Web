@@ -45,13 +45,18 @@ jobs:
       - name: Smoke test project creation
         run: |
           ./wevoa create ci-sample
+          ./wevoa create dashboard ci-dashboard
           test -f ci-sample/app/main.wev
           test -f ci-sample/views/index.wev
           test -f ci-sample/views/layout.wev
-          test -f ci-sample/views/docs.wev
-          test -f ci-sample/views/contact.wev
-          test -f ci-sample/views/partials/nav.wev
           test -f ci-sample/public/style.css
+          test -f ci-dashboard/app/main.wev
+          test -f ci-dashboard/views/index.wev
+          test -f ci-dashboard/views/layout.wev
+          test -f ci-dashboard/packages/auth/main.wev
+          test -f ci-dashboard/packages/db/main.wev
+          test -f ci-dashboard/packages/utils/main.wev
+          test -f ci-dashboard/public/style.css
 
       - name: Smoke test build pipeline
         run: |
@@ -66,7 +71,9 @@ jobs:
           ../wevoa info --global
           test -f build/app/main.wev
           test -f build/views/index.wev
-          test -f build/views/docs.wev
+          test -f build/views/layout.wev
           test -f build/public/style.css
           test -f build/wevoa.config.json
           test -f build/wevoa.build.json
+          test -f build/wevoa.snapshot.json
+          test -f build/wevoa.templates.json
