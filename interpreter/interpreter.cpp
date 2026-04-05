@@ -52,6 +52,9 @@ Value cloneValue(const Value& value, SnapshotCloneState& state) {
     if (value.isInteger()) {
         return Value(value.asInteger());
     }
+    if (value.isHtml()) {
+        return Value::html(value.asHtml());
+    }
     if (value.isString()) {
         return Value(value.asString());
     }
@@ -513,7 +516,7 @@ Value Interpreter::visitObjectExpr(const ObjectExpr& expr) {
 }
 
 Value Interpreter::visitHtmlExpr(const HtmlExpr& expr) {
-    return Value(renderInlineTemplate(expr.source, expr.span));
+    return Value::html(renderInlineTemplate(expr.source, expr.span));
 }
 
 Value Interpreter::visitGetExpr(const GetExpr& expr) {

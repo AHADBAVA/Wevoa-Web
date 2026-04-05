@@ -76,6 +76,52 @@ bool matchesAnyTerminator(const std::string& directive, const std::vector<std::s
     return false;
 }
 
+std::string escapeHtml(const std::string& value) {
+    std::string escaped;
+    escaped.reserve(value.size());
+    for (const char ch : value) {
+        switch (ch) {
+            case '&':
+                escaped += "&amp;";
+                break;
+            case '<':
+                escaped += "&lt;";
+                break;
+            case '>':
+                escaped += "&gt;";
+                break;
+            case '"':
+                escaped += "&quot;";
+                break;
+            case '\'':
+                escaped += "&#39;";
+                break;
+            default:
+                escaped.push_back(ch);
+                break;
+        }
+    }
+    return escaped;
+}
+
+bool pathStartsWith(const std::filesystem::path& root, const std::filesystem::path& candidate) {
+    auto rootIt = root.begin();
+    auto candidateIt = candidate.begin();
+    for (; rootIt != root.end() && candidateIt != candidate.end(); ++rootIt, ++candidateIt) {
+        if (*rootIt != *candidateIt) {
+            return false;
+        }
+    }
+    return rootIt == root.end();
+}
+
+std::filesystem::path normalizeTemplatePath(const std::filesystem::path& path) {
+    std::error_code error;
+    const auto absolute = std::filesystem::absolute(path, error);
+    const auto normalized = std::filesystem::weakly_canonical(absolute, error);
+    return error ? absolute.lexically_normal() : normalized;
+}
+
 void appendDependency(std::vector<std::filesystem::path>& dependencies, const std::filesystem::path& path) {
     if (std::find(dependencies.begin(), dependencies.end(), path) == dependencies.end()) {
         dependencies.push_back(path);
@@ -506,7 +552,8 @@ std::string renderNodes(const std::vector<Node>& nodes,
 
             case Node::Type::Expression:
                 if (node.expression.has_value()) {
-                    output += evaluateExpression(*node.expression, interpreter, environment).toString();
+                    const Value value = evaluateExpression(*node.expression, interpreter, environment);
+                    output += value.isHtml() ? value.asHtml() : escapeHtml(value.toString());
                 }
                 break;
 
@@ -1029,23 +1076,23 @@ std::string TemplateEngine::renderCompiledTemplate(const CompiledTemplate& compi
 
         if (!compiled.bodyNodes.empty() && compiled.sections.find("content") == compiled.sections.end()) {
             layoutEnvironment->define("content",
-                                      Value(renderNodes(compiled.bodyNodes,
-                                                        interpreter,
-                                                        environment,
-                                                        &compiled.path,
-                                                        includeRenderer,
-                                                        inlineRenderer)),
+                                      Value::html(renderNodes(compiled.bodyNodes,
+                                                              interpreter,
+                                                              environment,
+                                                              &compiled.path,
+                                                              includeRenderer,
+                                                              inlineRenderer)),
                                       true);
         }
 
         for (const auto& [name, nodes] : compiled.sections) {
             layoutEnvironment->define(name,
-                                      Value(renderNodes(nodes,
-                                                        interpreter,
-                                                        environment,
-                                                        &compiled.path,
-                                                        includeRenderer,
-                                                        inlineRenderer)),
+                                      Value::html(renderNodes(nodes,
+                                                              interpreter,
+                                                              environment,
+                                                              &compiled.path,
+                                                              includeRenderer,
+                                                              inlineRenderer)),
                                       true);
         }
 
@@ -1120,18 +1167,22 @@ std::string TemplateEngine::renderTemplateString(const std::string& source,
 }
 
 std::filesystem::path TemplateEngine::resolveTemplatePath(const std::string& templatePath) const {
-    const std::filesystem::path candidate = viewsRoot_ / templatePath;
-    std::error_code error;
-    const auto normalized = std::filesystem::weakly_canonical(candidate, error);
-    return error ? candidate : normalized;
+    const auto root = normalizeTemplatePath(viewsRoot_);
+    const auto resolved = normalizeTemplatePath(viewsRoot_ / templatePath);
+    if (!pathStartsWith(root, resolved)) {
+        throw std::runtime_error("Template path escapes views root: " + templatePath);
+    }
+    return resolved;
 }
 
 std::filesystem::path TemplateEngine::resolveRelativeTemplatePath(const std::filesystem::path& currentTemplate,
                                                                   const std::filesystem::path& relativeTemplate) const {
-    const auto candidate = currentTemplate.parent_path() / relativeTemplate;
-    std::error_code error;
-    const auto normalized = std::filesystem::weakly_canonical(candidate, error);
-    return error ? candidate : normalized;
+    const auto root = normalizeTemplatePath(viewsRoot_);
+    const auto resolved = normalizeTemplatePath(currentTemplate.parent_path() / relativeTemplate);
+    if (!pathStartsWith(root, resolved)) {
+        throw std::runtime_error("Template include escapes views root: " + relativeTemplate.generic_string());
+    }
+    return resolved;
 }
 
 std::shared_ptr<Environment> TemplateEngine::makeTemplateEnvironment(const Value& data,

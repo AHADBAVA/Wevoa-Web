@@ -13,6 +13,8 @@ Value::Value(std::string value) : storage_(std::move(value)) {}
 
 Value::Value(const char* value) : storage_(std::string(value)) {}
 
+Value::Value(HtmlString value) : storage_(std::move(value)) {}
+
 Value::Value(bool value) : storage_(value) {}
 
 Value::Value(std::shared_ptr<Callable> value) : storage_(std::move(value)) {}
@@ -25,6 +27,10 @@ Value::Value(Array value) : storage_(std::make_shared<Array>(std::move(value))) 
 
 Value::Value(Object value) : storage_(std::make_shared<Object>(std::move(value))) {}
 
+Value Value::html(std::string value) {
+    return Value(HtmlString {std::move(value)});
+}
+
 bool Value::isNil() const {
     return std::holds_alternative<std::monostate>(storage_);
 }
@@ -34,7 +40,11 @@ bool Value::isInteger() const {
 }
 
 bool Value::isString() const {
-    return std::holds_alternative<std::string>(storage_);
+    return std::holds_alternative<std::string>(storage_) || std::holds_alternative<HtmlString>(storage_);
+}
+
+bool Value::isHtml() const {
+    return std::holds_alternative<HtmlString>(storage_);
 }
 
 bool Value::isBoolean() const {
@@ -58,7 +68,14 @@ std::int64_t Value::asInteger() const {
 }
 
 const std::string& Value::asString() const {
-    return std::get<std::string>(storage_);
+    if (std::holds_alternative<std::string>(storage_)) {
+        return std::get<std::string>(storage_);
+    }
+    return std::get<HtmlString>(storage_).value;
+}
+
+const std::string& Value::asHtml() const {
+    return std::get<HtmlString>(storage_).value;
 }
 
 bool Value::asBoolean() const {
@@ -179,6 +196,10 @@ bool Value::isTruthy() const {
 }
 
 bool Value::operator==(const Value& other) const {
+    if (isString() && other.isString()) {
+        return asString() == other.asString();
+    }
+
     if (storage_.index() != other.storage_.index()) {
         return false;
     }

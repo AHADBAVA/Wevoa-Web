@@ -108,7 +108,7 @@ void registerBuiltins(Interpreter& interpreter) {
             }
 
             const Value context = arguments.size() == 2 ? arguments[1] : Value(Value::Object {});
-            return Value(runtime.renderView(arguments[0].asString(), context, span));
+            return Value::html(runtime.renderView(arguments[0].asString(), context, span));
         });
 
     interpreter.registerNative(

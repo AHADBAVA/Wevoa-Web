@@ -15,9 +15,13 @@ class Value {
   public:
     using Array = std::vector<Value>;
     using Object = std::unordered_map<std::string, Value>;
+    struct HtmlString {
+        std::string value;
+    };
     using Storage = std::variant<std::monostate,
                                  std::int64_t,
                                  std::string,
+                                 HtmlString,
                                  bool,
                                  std::shared_ptr<Callable>,
                                  std::shared_ptr<Array>,
@@ -27,16 +31,19 @@ class Value {
     explicit Value(std::int64_t value);
     explicit Value(std::string value);
     explicit Value(const char* value);
+    explicit Value(HtmlString value);
     explicit Value(bool value);
     explicit Value(std::shared_ptr<Callable> value);
     explicit Value(std::shared_ptr<Array> value);
     explicit Value(std::shared_ptr<Object> value);
     explicit Value(Array value);
     explicit Value(Object value);
+    static Value html(std::string value);
 
     bool isNil() const;
     bool isInteger() const;
     bool isString() const;
+    bool isHtml() const;
     bool isBoolean() const;
     bool isCallable() const;
     bool isArray() const;
@@ -44,6 +51,7 @@ class Value {
 
     std::int64_t asInteger() const;
     const std::string& asString() const;
+    const std::string& asHtml() const;
     bool asBoolean() const;
     const std::shared_ptr<Callable>& asCallable() const;
     const Array& asArray() const;

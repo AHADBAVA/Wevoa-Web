@@ -589,7 +589,7 @@ HttpResponse WebApplication::render(const HttpRequest& request) {
         makeSessionValue(sessionStore_, sessionId, requestSession->interpreter(), sessionCookieAttributes()));
     requestSession->interpreter().setCurrentCsrfToken(csrfToken);
 
-    if (!existingSessionId.has_value()) {
+    if (!existingSessionId.has_value() || existingSessionId.value() != sessionId) {
         requestSession->interpreter().addResponseHeader("Set-Cookie",
                                                         std::string(kSessionCookieName) + "=" + sessionId +
                                                             sessionCookieAttributes());
@@ -754,7 +754,7 @@ bool WebApplication::productionMode() const {
 }
 
 bool WebApplication::secureCookies() const {
-    return booleanConfigValue(config_, "secure_cookies", false);
+    return booleanConfigValue(config_, "secure_cookies", productionMode());
 }
 
 std::string WebApplication::sessionCookieAttributes() const {

@@ -41,14 +41,12 @@ std::string SessionStore::ensureSession(const std::optional<std::string>& existi
     purgeExpiredLocked();
 
     if (existingSessionId.has_value() && !existingSessionId->empty()) {
-        auto [iterator, inserted] = sessions_.try_emplace(*existingSessionId,
-                                                          SessionEntry {Value::Object {},
-                                                                        std::chrono::steady_clock::now(),
-                                                                        std::chrono::steady_clock::now()});
-        static_cast<void>(inserted);
-        touchLocked(iterator->second);
-        enforceMaxSessionsLocked();
-        return *existingSessionId;
+        const auto found = sessions_.find(*existingSessionId);
+        if (found != sessions_.end()) {
+            touchLocked(found->second);
+            enforceMaxSessionsLocked();
+            return *existingSessionId;
+        }
     }
 
     while (true) {
@@ -113,7 +111,6 @@ std::size_t SessionStore::size() const {
 void SessionStore::cleanupLoop() {
     std::unique_lock<std::mutex> lock(mutex_);
     while (true) {
-        // FIXED: Using wait_for's boolean return avoids static analysis dead-code warnings
         if (cleanupWake_.wait_for(lock, cleanupInterval_, [this]() { return stopRequested_; })) {
             break;
         }
