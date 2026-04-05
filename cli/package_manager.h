@@ -18,6 +18,7 @@ struct InstalledPackageInfo {
     std::vector<std::string> dependencies;
     bool isOfficial = false;
     std::filesystem::path path;
+    std::string sha256;
 };
 
 struct PackageInstallResult {

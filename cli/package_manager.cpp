@@ -13,6 +13,7 @@
 #include <unordered_set>
 
 #include "runtime/config_loader.h"
+#include "utils/security.h"
 #include "utils/version.h"
 
 namespace wevoaweb {
@@ -73,6 +74,7 @@ struct PackageManifest {
     std::string usageSnippet;
     bool isOfficial = false;
     std::unordered_map<std::string, std::string> dependencies;
+    std::string sha256;
 };
 
 struct PackageSpec {
@@ -324,7 +326,8 @@ std::unordered_map<std::string, PackageManifest> corePackageRegistry() {
                           "https://github.com/wevoa/packages-utils",
                           "import \"@utils\"\n\nreturn utils_success(\"Ready\")",
                           true,
-                          {}}},
+                          {},
+                          ""}},
         {"auth",
          PackageManifest {"auth",
                           kCorePackageVersion,
@@ -333,7 +336,8 @@ std::unordered_map<std::string, PackageManifest> corePackageRegistry() {
                           "https://github.com/wevoa/packages-auth",
                           "import \"@auth\"\n\nlet user = auth_register(\"demo@example.com\", \"secret123\", { role: \"admin\" })\nauth_login(\"demo@example.com\", \"secret123\")",
                           true,
-                          {{"utils", "^1.0.0"}, {"db", "^1.0.0"}}}},
+                          {{"utils", "^1.0.0"}, {"db", "^1.0.0"}},
+                          ""}},
         {"db",
          PackageManifest {"db",
                           kCorePackageVersion,
@@ -342,7 +346,8 @@ std::unordered_map<std::string, PackageManifest> corePackageRegistry() {
                           "https://github.com/wevoa/packages-db",
                           "import \"@db\"\n\nlet total = db_scalar(\"SELECT COUNT(*) FROM users\")",
                           true,
-                          {}}},
+                          {},
+                          ""}},
     };
 }
 
@@ -410,6 +415,9 @@ Value manifestToValue(const PackageManifest& manifest) {
     if (!manifest.usageSnippet.empty()) {
         object.insert_or_assign("usage", Value(manifest.usageSnippet));
     }
+    if (!manifest.sha256.empty()) {
+        object.insert_or_assign("sha256", Value(manifest.sha256));
+    }
     object.insert_or_assign("isOfficial", Value(manifest.isOfficial));
 
     Value::Object dependencies;
@@ -424,7 +432,7 @@ PackageManifest manifestFromValue(const Value& value,
                                   const std::string& fallbackName,
                                   const std::string& fallbackVersion,
                                   const std::string& fallbackSource) {
-    PackageManifest manifest {fallbackName, fallbackVersion, fallbackSource, "", "", "", false, {}};
+    PackageManifest manifest {fallbackName, fallbackVersion, fallbackSource, "", "", "", false, {}, ""};
     if (!value.isObject()) {
         return manifest;
     }
@@ -447,6 +455,9 @@ PackageManifest manifestFromValue(const Value& value,
     }
     if (const auto found = object.find("usage"); found != object.end() && found->second.isString()) {
         manifest.usageSnippet = found->second.asString();
+    }
+    if (const auto found = object.find("sha256"); found != object.end() && found->second.isString()) {
+        manifest.sha256 = found->second.asString();
     }
     if (const auto found = object.find("isOfficial"); found != object.end() && found->second.isBoolean()) {
         manifest.isOfficial = found->second.asBoolean();
@@ -845,7 +856,8 @@ InstalledPackageInfo packageInfoFromManifest(const std::filesystem::path& packag
                                  manifest.usageSnippet,
                                  std::move(dependencies),
                                  manifest.isOfficial,
-                                 packageRoot};
+                                 packageRoot,
+                                 manifest.sha256};
 }
 
 std::filesystem::path registryCacheFile() {
@@ -881,6 +893,33 @@ std::string configuredRegistrySource() {
 
 bool isHttpUrl(const std::string& value) {
     return value.rfind("http://", 0) == 0 || value.rfind("https://", 0) == 0;
+}
+
+std::string toLower(std::string value) {
+    std::transform(value.begin(), value.end(), value.begin(), [](unsigned char ch) {
+        return static_cast<char>(std::tolower(ch));
+    });
+    return value;
+}
+
+void ensureSecureRemoteUrl(const std::string& url, const std::string& context) {
+    if (url.rfind("http://", 0) == 0) {
+        throw std::runtime_error("Insecure " + context + " URL is not allowed: " + url +
+                                 ". Use HTTPS or a local file path.");
+    }
+}
+
+void verifyDownloadedPackageChecksum(const std::filesystem::path& path, const PackageManifest& manifest) {
+    if (manifest.sha256.empty()) {
+        throw std::runtime_error("Remote package " + manifest.name +
+                                 " is missing a sha256 checksum in the registry manifest.");
+    }
+
+    const std::string actual = toLower(sha256Hex(readFileContents(path)));
+    const std::string expected = toLower(manifest.sha256);
+    if (actual != expected) {
+        throw std::runtime_error("Checksum verification failed for remote package " + manifest.name + ".");
+    }
 }
 
 std::string escapeForPowerShellSingleQuotes(const std::string& value) {
@@ -969,6 +1008,7 @@ Value loadRegistryValue() {
 
     if (!configuredSource.empty()) {
         if (isHttpUrl(configuredSource)) {
+            ensureSecureRemoteUrl(configuredSource, "registry");
             if (fetchUrlToFile(configuredSource, cachePath)) {
                 return loadJsonObjectOrDefault(cachePath);
             }
@@ -1024,7 +1064,8 @@ std::vector<InstalledPackageInfo> registryPackages() {
                                                  manifest.usageSnippet,
                                                  std::move(dependencies),
                                                  manifest.isOfficial,
-                                                 {}});
+                                                 {},
+                                                 manifest.sha256});
     }
 
     std::sort(packages.begin(), packages.end(), [](const InstalledPackageInfo& left, const InstalledPackageInfo& right) {
@@ -1043,6 +1084,7 @@ std::optional<PackageManifest> registryPackageManifest(const std::string& packag
             manifest.description = package.description;
             manifest.repo = package.repo;
             manifest.usageSnippet = package.usageSnippet;
+            manifest.sha256 = package.sha256;
             manifest.isOfficial = package.isOfficial;
             for (const auto& dependency : package.dependencies) {
                 const auto at = dependency.find('@');
@@ -1096,7 +1138,7 @@ PackageInstallResult PackageManager::install(const std::string& packageSpec, boo
             std::error_code error;
             manifest = std::filesystem::is_directory(*localSourcePath, error)
                            ? readManifest(*localSourcePath, packageName, kScaffoldVersion, "local")
-                           : PackageManifest {packageName, kScaffoldVersion, "local", "", "", "", false, {}};
+                           : PackageManifest {packageName, kScaffoldVersion, "local", "", "", "", false, {}, ""};
             manifest.name = packageName;
             cachePath = cacheRoot / manifest.name / manifest.version;
             removeDirectoryIfExists(cachePath);
@@ -1148,11 +1190,13 @@ PackageInstallResult PackageManager::install(const std::string& packageSpec, boo
                     removeDirectoryIfExists(cachePath);
                     refreshOfficialPackageFiles(writer_, cachePath, manifest);
                 } else if (isHttpUrl(manifest.source)) {
+                    ensureSecureRemoteUrl(manifest.source, "package source");
                     if (!std::filesystem::exists(cachePath / "main.wev")) {
                         writer_.createDirectory(cachePath);
                         if (!fetchUrlToFile(manifest.source, cachePath / "main.wev")) {
                             throw std::runtime_error("Unable to fetch package source from registry: " + manifest.source);
                         }
+                        verifyDownloadedPackageChecksum(cachePath / "main.wev", manifest);
                         writeManifest(writer_, cachePath, manifest);
                         ensureReadmeFile(writer_, cachePath, manifest);
                     }
@@ -1198,7 +1242,8 @@ PackageInstallResult PackageManager::install(const std::string& packageSpec, boo
                                                "",
                                                "",
                                                false,
-                                               {}};
+                                               {},
+                                               ""};
                     cachePath = cacheRoot / manifest.name / manifest.version;
                     removeDirectoryIfExists(cachePath);
                     writer_.createDirectory(cachePath);
@@ -1345,7 +1390,8 @@ std::vector<InstalledPackageInfo> PackageManager::listAvailableCore() const {
                                                  manifest.usageSnippet,
                                                  std::move(dependencies),
                                                  manifest.isOfficial,
-                                                 {}});
+                                                 {},
+                                                 manifest.sha256});
     }
 
     std::sort(packages.begin(), packages.end(), [](const InstalledPackageInfo& left, const InstalledPackageInfo& right) {

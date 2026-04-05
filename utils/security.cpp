@@ -143,6 +143,10 @@ std::string hashPasswordWithSalt(const std::string& password,
 
 }  // namespace
 
+std::string sha256Hex(const std::string& value) {
+    return toHex(sha256Bytes(value));
+}
+
 std::string generateSecureToken(std::size_t byteCount) {
     thread_local std::mt19937_64 generator(std::random_device {}());
     std::uniform_int_distribution<int> distribution(0, 255);
