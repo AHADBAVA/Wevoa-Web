@@ -17,6 +17,18 @@
 
 WevoaWeb combines a custom language, interpreter, template engine, HTTP server, package system, starter packs, and CLI into one installable platform. It is designed for developers who want a simpler server-rendered stack with fewer moving parts and no JavaScript dependency for the normal request flow.
 
+## Official Downloads
+
+Official WevoaWeb runtime binaries and installers are published only through the official GitHub Releases page for this repository.
+
+Official release artifacts:
+
+- `WevoaSetup.exe`
+- `wevoa.exe`
+- `SHA256SUMS.txt`
+
+Anything distributed outside the official GitHub Releases page should be treated as unofficial unless it is explicitly verified by the project owner.
+
 ## Why WevoaWeb
 
 - One runtime for language, routing, templates, build, serve, and project scaffolding
@@ -59,6 +71,39 @@ The recommended Windows distribution path is the GUI installer:
 - `dist\installer\WevoaSetup.exe`
 
 That installs the runtime globally, adds it to `PATH`, and makes `wevoa` available from any new terminal.
+
+## Release Verification
+
+For public downloads, verify release files with the published checksum file:
+
+- `SHA256SUMS.txt`
+
+Windows:
+
+```powershell
+Get-FileHash .\WevoaSetup.exe -Algorithm SHA256
+Get-FileHash .\wevoa.exe -Algorithm SHA256
+```
+
+Or use the helper script:
+
+```powershell
+.\scripts\verify-checksums.ps1 -ChecksumFile .\dist\SHA256SUMS.txt -BaseDir .\dist
+```
+
+Linux:
+
+```bash
+sha256sum -c SHA256SUMS.txt
+```
+
+Or use the helper script:
+
+```bash
+./scripts/verify-checksums.sh ./dist/SHA256SUMS.txt ./dist
+```
+
+Code-signing for installers and binaries is planned as a later release-hardening step.
 
 ### Windows: build from source
 

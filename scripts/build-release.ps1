@@ -39,6 +39,7 @@ $sources = @(
     "runtime/session.cpp",
     "runtime/template_engine.cpp",
     "runtime/config_loader.cpp",
+    "runtime/http_module.cpp",
     "runtime/sqlite_module.cpp",
     "server/http_types.cpp",
     "server/web_app.cpp",

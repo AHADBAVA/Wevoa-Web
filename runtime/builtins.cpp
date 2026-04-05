@@ -2,6 +2,7 @@
 
 #include "interpreter/interpreter.h"
 #include "runtime/config_loader.h"
+#include "runtime/http_module.h"
 #include "runtime/sqlite_module.h"
 #include "utils/error.h"
 #include "utils/security.h"
@@ -245,6 +246,7 @@ void registerBuiltins(Interpreter& interpreter) {
         });
 
     registerSqliteModule(interpreter);
+    registerHttpModule(interpreter);
 }
 
 }  // namespace wevoaweb

@@ -244,6 +244,7 @@ Optional extras:
 
 - `wevoa.exe`: raw runtime binary for advanced users, CI, and portable use
 - `WevoaSetup.exe`: normal user-facing installer
+- `SHA256SUMS.txt`: official checksum file for release verification
 
 ### 6.3 Recommended Public Download Presentation
 
@@ -251,8 +252,17 @@ For a GitHub Release or download page:
 
 - first/highlighted asset: `WevoaSetup.exe`
 - secondary asset: `wevoa.exe`
+- checksum asset: `SHA256SUMS.txt`
 
 This keeps the main onboarding path simple while still supporting advanced workflows.
+
+### 6.4 Official Distribution Channels
+
+For trust and anti-rebranding purposes, WevoaWeb should tell users clearly:
+
+- official runtime binaries are published only through the official GitHub Releases page
+- official Windows installers are published only through the official GitHub Releases page
+- anything else should be treated as unofficial unless explicitly verified by the project owner
 
 ---
 
@@ -445,6 +455,24 @@ Every official installer should:
 - remove installed files safely
 
 This is part of platform trust and operational hygiene.
+
+### 11.5 Publish Checksums
+
+Every official release should publish:
+
+- `SHA256SUMS.txt`
+
+This gives users a simple way to confirm that a downloaded binary or installer matches the official release output.
+
+### 11.6 Signed Releases Later
+
+For stronger trust later, WevoaWeb should add:
+
+- signed Windows binaries
+- signed Windows installer
+- optional detached signatures or published certificate information
+
+Checksums help users detect accidental corruption or obvious tampering, while code-signing helps users distinguish official releases from fake repackaged ones.
 
 ---
 
